@@ -6,6 +6,8 @@
 #include <boost/lexical_cast.hpp>
 #include <sys/types.h>
 #include <unistd.h>
+#include <math.h>
+#define	THRESHOLD	15.0
 
 class VideoWriter {
     CvVideoWriter *video;
@@ -201,6 +203,7 @@ MainGazeTracker::MainGazeTracker(int argc, char** argv,
 {
     CommandLineArguments args(argc, argv);
 
+
 	if (args.getoptionvalue("help").compare("") != 0) {
 		cout << endl;
 		cout << "CVC Machine Vision Group Eye-Tracker" << endl;
@@ -381,6 +384,19 @@ MainGazeTracker::MainGazeTracker(int argc, char** argv,
     
     game_win->setRepositioningImage(repositioning_image);
     face_rectangle = NULL;
+
+    lastframe = NULL;
+
+// ----------------------- TEST ARCADI INIT --------------------------------
+
+    autodetectpointscounter = 0;
+    cintest = 0;
+
+// -------------------------------------------------------------------------
+}
+
+double MainGazeTracker::euclideanDistance(Point point1, Point point2){
+	return double(sqrt(pow((point1.x-point2.x),2)+pow((point1.y-point2.y),2)));
 }
 
 void MainGazeTracker::addTracker(Point point) {
@@ -493,7 +509,91 @@ void MainGazeTracker::doprocessing(void) {
 	
     framecount++;
     videoinput->updateFrame();
-	
+
+// ------------------------- TEST ARCADI -----------------------------------
+
+	// CODE
+
+	vector<char> status = tracking->tracker.status;
+
+	if(status.size())
+		for(int k=0; k<status.size(); k++)
+			cout << "status " << k << ": " << (status[k] ? "TRUE" : "FALSE") << endl;
+
+	//cin.get();
+
+	if (autodetectpointscounter == 5){
+		choosepoints();
+		testorigpoints = tracking->tracker.getpoints(&PointTracker::origpoints, true);
+		
+		cout << "testorigpoints:" << testorigpoints << endl;
+		/*/
+		cout << "Press any character and then press intro:" << endl;
+		cin >> cintest;
+
+		cin.get();
+		/*/
+	}
+
+    if ((autodetectpointscounter > 5) && (autodetectpointscounter < 20)){
+
+    	choosepoints();
+    	testcurrentpoints = tracking->tracker.getpoints(&PointTracker::currentpoints, true);
+    	if ((testorigpoints.size() != 0) && (testcurrentpoints.size() != 0) && 
+    		(euclideanDistance(testorigpoints[0], testcurrentpoints[0]) < THRESHOLD) && 
+    		(euclideanDistance(testorigpoints[1], testcurrentpoints[1]) < THRESHOLD) && 
+    		(euclideanDistance(testorigpoints[2], testcurrentpoints[2]) < THRESHOLD) && 
+    		(euclideanDistance(testorigpoints[3], testcurrentpoints[3]) < THRESHOLD)){
+
+    		autodetectpointscounter++;
+    		cout << "autodetectpointscounter:" << autodetectpointscounter << endl;
+
+
+    	}else{
+    		autodetectpointscounter = 0;
+    	}
+
+    }
+
+	autodetectpointscounter++;
+
+	cout << "framecount: " << framecount << endl;
+	cout << "autodetectpointscounter:" << autodetectpointscounter << endl;
+
+	//cout << "lastframe->width: " << lastframe->width << endl;
+	//cout << "lastframe->height: " << lastframe->height << endl;
+
+	//cout << "videoinput->frame VALUE: " << videoinput->frame[320,240] << endl;
+	//cout << "lastframe VALUE: " << lastframe[(320,240),7,2] << endl;
+
+	//cout << "videoinput->frame[320] width: " << videoinput->frame[320].width << endl;
+	//cout << "lastframe[320] width: " << lastframe[320].width << endl;
+	//cout << "videoinput->frame[240] height: " << videoinput->frame[240].height << endl;
+	//cout << "lastframe[240] height: " << lastframe[240].height << endl;
+
+/*
+
+	choosepoints()
+
+	videoinput->frame
+	videoinput->frame.width .height
+
+	vector<CvPoint2D32f> x = tracking->tracker.getpoints(&PointTracker::lastpoints, true)
+	tracking->tracker.getpoints(&PointTracker::origpoints, true)
+	tracking->tracker.getpoints(&PointTracker::currentpoints, true)
+
+		Point eyes[2];
+		Point nose[2];
+		Point mouth[2];
+		Point eyebrows[2];
+		
+
+eyes[0].x, eyes[0].y, 
+
+*/
+
+// -------------------------------------------------------------------------
+
 	// Wait a little so that the marker stays on the screen for a longer time
 	if((tracker_status == STATUS_CALIBRATING || tracker_status == STATUS_TESTING) && !videoinput->capture_from_video) {
 		usleep(sleep_parameter);
@@ -944,8 +1044,10 @@ bool detect_nose(IplImage* img, double resolution, CvRect nose_rect, Point point
 
 
 	// Load the face detector and create empty memory storage
+	// TODO ARCADI COMMENT OUT THESE LINES AND COPY THE POINTER TO ALREADY LOADED DETECTOR
 	char* file = "DetectorNose2.xml";
 	cascade = (CvHaarClassifierCascade*) cvLoad(file, 0, 0, 0);
+	// cascade = cascade_nose;	// TODO CONTINUE
 	storage = cvCreateMemStorage(0);
 	
 	if(cascade == NULL)

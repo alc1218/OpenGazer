@@ -63,6 +63,10 @@ class MainGazeTracker {
     int framestoreload;
     vector<boost::shared_ptr<AbstractStore> > stores;
     int framecount;
+    int cintest;
+    vector<Point> testcurrentpoints;
+    vector<Point> testorigpoints;
+    int autodetectpointscounter;
     bool autoreload;
 	string directory;
 	string base_path;
@@ -72,6 +76,7 @@ class MainGazeTracker {
 	IplImage* conversionimage;
 	IplImage* overlayimage;
 	IplImage* repositioning_image;
+    IplImage* lastframe;
 	vector<CvRect> faces;
 	
 	Calibrator* calibrator;
@@ -102,6 +107,7 @@ class MainGazeTracker {
 	void simulateClicks(void);
     ~MainGazeTracker(void);
 	void cleanUp(void);
+    double euclideanDistance(Point point1, Point point2);
     void addTracker(Point point);
     void addExemplar(Point exemplar);
     void startCalibration();
