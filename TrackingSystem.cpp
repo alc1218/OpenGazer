@@ -50,19 +50,20 @@ void TrackingSystem::doprocessing(const IplImage *frame,
     eyex.extractEye(frame);	// throws Tracking Exception
     gazetracker.update(eyex.eyefloat.get(), eyex.eyegrey.get());
     gazetracker.update_left(eyex.eyefloat_left.get(), eyex.eyegrey_left.get());
-	
-    displayeye(image, 0, 0, 0, 2);
+
+    displayeye(image);
     tracker.draw(image);
     headtracker.draw(image);
+
 }
 }
 
-void TrackingSystem::displayeye(IplImage *image, 
-				 int basex, int basey, int stepx, int stepy) 
+void TrackingSystem::displayeye(IplImage *image) 
 {
     CvSize eyesize = EyeExtractor::eyesize;
-    int eyedx = EyeExtractor::eyedx;
-    int eyedy = EyeExtractor::eyedy;
+    int basex, basey, stepx, stepy;
+    int eyedx = 2*EyeExtractor::eyedx;
+    int eyedy = 2*EyeExtractor::eyedy;
 
     static IplImage *eyegreytemp = cvCreateImage( eyesize, 8, 1 );
     static FeatureDetector features(EyeExtractor::eyesize);
@@ -70,35 +71,62 @@ void TrackingSystem::displayeye(IplImage *image,
 
     features.addSample(eyex.eyegrey.get());
 
-    basex *= 2*eyedx; basey *= 2*eyedy;
-    stepx *= 2*eyedx; stepy *= 2*eyedy;
+    basex = 5; basey = 5;
+    stepx = 5+eyedx; stepy = 5+eyedy;
 
     gazetracker.draw(image, eyedx, eyedy);
 
-    cvSetImageROI(image, cvRect(basex, basey, eyedx*2, eyedy*2));
-    cvCvtColor(eyex.eyegrey.get(), image, CV_GRAY2RGB);
-
-    cvSetImageROI(image, cvRect(basex + stepx*1, basey + stepy*1,
-				    eyedx*2, eyedy*2));
-    cvCvtColor(eyex.eyegrey.get(), image, CV_GRAY2RGB);
-
+    // RIGHT EYE
+    // Mean eye image
     cvConvertScale(features.getMean().get(),  eyegreytemp);
-    cvSetImageROI(image, cvRect(basex, basey, eyedx*2, eyedy*2));
+    cvSetImageROI(image, cvRect(basex, basey, eyedx, eyedy));
     cvCvtColor(eyegreytemp, image, CV_GRAY2RGB);
+
+    // Grey eye image
+    cvSetImageROI(image, cvRect(basex, basey + stepy, eyedx, eyedy));
+    cvCvtColor(eyex.eyegrey.get(), image, CV_GRAY2RGB);
+
+    // Color eye image
+    cvSetImageROI(image, cvRect(basex, basey + stepy*2, eyedx, eyedy));
+    cvCopy(eyex.eyeimage.get(), image); //, eyex.eyeimage.get());
+
+    // Horizontal histogram Segmentation eye image
+    cvSetImageROI(image, cvRect(basex, basey + stepy*3, eyedx, eyedy));
+    cvCopy(eyex.histogram_horitzontal, image); //, eyex.eyeimage.get());
+
+    // Vertical histogram Segmentation eye image
+    cvSetImageROI(image, cvRect(basex, basey + stepy*4, eyedy, eyedx));
+    cvCopy(eyex.histogram_vertical, image); //, eyex.eyeimage.get());
+
+
 
 	// ONUR DUPLICATED CODE FOR LEFT EYE
     features_left.addSample(eyex.eyegrey_left.get());
 
-    cvSetImageROI(image, cvRect(basex + 100, basey, eyedx*2, eyedy*2));
-    cvCvtColor(eyex.eyegrey_left.get(), image, CV_GRAY2RGB);
-
-    cvSetImageROI(image, cvRect(basex + 100, basey + stepy*1,
-				    eyedx*2, eyedy*2));
-    cvCvtColor(eyex.eyegrey_left.get(), image, CV_GRAY2RGB);
-
+    // Mean eye image
     cvConvertScale(features_left.getMean().get(),  eyegreytemp);
-    cvSetImageROI(image, cvRect(basex + 100, basey, eyedx*2, eyedy*2));
+    cvSetImageROI(image, cvRect(basex + stepx, basey, eyedx, eyedy));
     cvCvtColor(eyegreytemp, image, CV_GRAY2RGB);
+
+    // Grey eye image
+    cvSetImageROI(image, cvRect(basex + stepx, basey + stepy, eyedx, eyedy));
+    cvCvtColor(eyex.eyegrey_left.get(), image, CV_GRAY2RGB);
+
+    // Color eye image
+    cvSetImageROI(image, cvRect(basex + stepx, basey + stepy*2, eyedx, eyedy));
+    cvCopy(eyex.eyeimage_left.get(), image); //eyex.eyeimage_left.get());
+
+    // Horizontal histogram Segmentation eye image
+    cvSetImageROI(image, cvRect(basex + stepx, basey + stepy*3, eyedx, eyedy));
+    cvCopy(eyex.histogram_horitzontal_left, image); //, eyex.eyeimage.get());
+
+    // Vertical histogram Segmentation eye image
+    cvSetImageROI(image, cvRect(basex + stepx, basey + stepy*4, eyedy, eyedx));
+    cvCopy(eyex.histogram_vertical_left, image); //, eyex.eyeimage.get());
+
+
+
+
 
 // //     features.getVariance(eyegreytemp);
 // //     cvSetImageROI(image, cvRect(basex, basey+stepy*2, eyedx*2, eyedy*2));

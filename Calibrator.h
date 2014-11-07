@@ -50,6 +50,11 @@ class Calibrator: public MovingTarget {
     boost::shared_ptr<TrackingSystem> trackingsystem;
     scoped_ptr<FeatureDetector> averageeye;
     scoped_ptr<FeatureDetector> averageeye_left;
+
+    scoped_ptr<std::vector<std::vector<int> > > vectorDeVectores_horizontal, vectorDeVectores_vertical, 
+                                                vectorDeVectores_horizontal_left, vectorDeVectores_vertical_left;
+
+
 public:
     static vector<Point> defaultpoints;
     static vector<Point> loadpoints(istream& in);

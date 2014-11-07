@@ -7,7 +7,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <math.h>
-#define	THRESHOLD	15.0
+#define	THRESHOLD	25.0
 
 class VideoWriter {
     CvVideoWriter *video;
@@ -391,7 +391,9 @@ MainGazeTracker::MainGazeTracker(int argc, char** argv,
 
     autodetectpointscounter = 0;
     cintest = 0;
-
+    cascade_nose = (CvHaarClassifierCascade*) cvLoad("DetectorNose2.xml", 0, 0, 0);
+    cascade_eye = (CvHaarClassifierCascade*) cvLoad("DetectorEyes.xml", 0, 0, 0);
+    cascade_mouth = (CvHaarClassifierCascade*) cvLoad("DetectorMouth.xml", 0, 0, 0);
 // -------------------------------------------------------------------------
 }
 
@@ -435,14 +437,14 @@ void MainGazeTracker::choosepoints() {
 			*commandoutputfile << totalframecount << " SELECT" << endl;
 		}
 		
-		detect_eye_corners(videoinput->frame, videoinput->get_resolution(), eyes);
+		detect_eye_corners(videoinput->frame, videoinput->get_resolution(), eyes, cascade_eye);
 		
 		
 		CvRect nose_rect = cvRect(eyes[0].x, eyes[0].y, fabs(eyes[0].x-eyes[1].x), fabs(eyes[0].x-eyes[1].x));
 		check_rect_size(videoinput->frame, &nose_rect);
 		//cout << "Nose rect: " << nose_rect.x << ", " << nose_rect.y << " - " << nose_rect.width << ", " << nose_rect.height << endl;
 		
-		if(!detect_nose(videoinput->frame, videoinput->get_resolution(), nose_rect, nose)) {
+		if(!detect_nose(videoinput->frame, videoinput->get_resolution(), nose_rect, nose, cascade_nose)) {
 			cout << "NO NOSE" << endl;
 			return;
 		}
@@ -450,7 +452,7 @@ void MainGazeTracker::choosepoints() {
 		CvRect mouth_rect = cvRect(eyes[0].x, nose[0].y, fabs(eyes[0].x-eyes[1].x), 0.8*fabs(eyes[0].x-eyes[1].x));
 		check_rect_size(videoinput->frame, &mouth_rect);
 		
-		if(!detect_mouth(videoinput->frame, videoinput->get_resolution(), mouth_rect, mouth)) {
+		if(!detect_mouth(videoinput->frame, videoinput->get_resolution(), mouth_rect, mouth, cascade_mouth)) {
 			cout << "NO MOUTH" << endl;
 			return;
 		}
@@ -517,17 +519,19 @@ void MainGazeTracker::doprocessing(void) {
 	vector<char> status = tracking->tracker.status;
 
 	if(status.size())
-		for(int k=0; k<status.size(); k++)
+		for(k=0; k<status.size(); k++)
 			cout << "status " << k << ": " << (status[k] ? "TRUE" : "FALSE") << endl;
-
-	//cin.get();
+			//if (tracking->tracker.countactivepoints() < 6 && autodetectpointscounter%50==0){
+			if (tracking->tracker.countactivepoints() < 5 && autodetectpointscounter>20){
+				autodetectpointscounter = 0;
+			}
 
 	if (autodetectpointscounter == 5){
 		choosepoints();
 		testorigpoints = tracking->tracker.getpoints(&PointTracker::origpoints, true);
 		
+		/*/		
 		cout << "testorigpoints:" << testorigpoints << endl;
-		/*/
 		cout << "Press any character and then press intro:" << endl;
 		cin >> cintest;
 
@@ -546,7 +550,6 @@ void MainGazeTracker::doprocessing(void) {
     		(euclideanDistance(testorigpoints[3], testcurrentpoints[3]) < THRESHOLD)){
 
     		autodetectpointscounter++;
-    		cout << "autodetectpointscounter:" << autodetectpointscounter << endl;
 
 
     	}else{
@@ -557,8 +560,8 @@ void MainGazeTracker::doprocessing(void) {
 
 	autodetectpointscounter++;
 
-	cout << "framecount: " << framecount << endl;
-	cout << "autodetectpointscounter:" << autodetectpointscounter << endl;
+	//cout << "framecount: " << framecount << endl;
+	//cout << "autodetectpointscounter:" << autodetectpointscounter << endl;
 
 	//cout << "lastframe->width: " << lastframe->width << endl;
 	//cout << "lastframe->height: " << lastframe->height << endl;
@@ -720,7 +723,6 @@ eyes[0].x, eyes[0].y,
 		cvRectangle(canvas.get(), cvPoint(videoinput->size.width-rectangle_thickness, 0), cvPoint(videoinput->size.width, videoinput->size.height), color, CV_FILLED);	//right
 		cvRectangle(canvas.get(), cvPoint(0, videoinput->size.height-rectangle_thickness), cvPoint(videoinput->size.width, videoinput->size.height), color, CV_FILLED);	//bottm
 		
-		
 		// Fill the repositioning image so that it can be displayed on the subject's monitor too
 		cvAddWeighted(frame, 0.5, overlayimage, 0.5, 0.0, repositioning_image);
 		
@@ -790,7 +792,7 @@ eyes[0].x, eyes[0].y,
 			//cout << "Image written" << endl << endl;
 		}
 	}
-	
+
 	// Show the current target & estimation points on the main window
 	if(tracker_status == STATUS_CALIBRATING || tracker_status == STATUS_TESTING || tracker_status == STATUS_CALIBRATED) {
 		TrackerOutput output = tracking->gazetracker.output;
@@ -1010,7 +1012,7 @@ void MainGazeTracker::pauseOrRepositionHead() {
 }
 
 
-bool detect_nose(IplImage* img, double resolution, CvRect nose_rect, Point points[]){
+bool detect_nose(IplImage* img, double resolution, CvRect nose_rect, Point points[], CvHaarClassifierCascade* cascade_nose){
 	CvHaarClassifierCascade* cascade = 0;
 	CvMemStorage* storage = 0;
 	CvRect* nose = new CvRect();
@@ -1045,9 +1047,9 @@ bool detect_nose(IplImage* img, double resolution, CvRect nose_rect, Point point
 
 	// Load the face detector and create empty memory storage
 	// TODO ARCADI COMMENT OUT THESE LINES AND COPY THE POINTER TO ALREADY LOADED DETECTOR
-	char* file = "DetectorNose2.xml";
-	cascade = (CvHaarClassifierCascade*) cvLoad(file, 0, 0, 0);
-	// cascade = cascade_nose;	// TODO CONTINUE
+	//char* file = "DetectorNose2.xml";
+	//cascade = (CvHaarClassifierCascade*) cvLoad(file, 0, 0, 0);
+	cascade = cascade_nose;	// TODO CONTINUE
 	storage = cvCreateMemStorage(0);
 	
 	if(cascade == NULL)
@@ -1097,7 +1099,7 @@ bool detect_nose(IplImage* img, double resolution, CvRect nose_rect, Point point
 	return true;
 }
 
-bool detect_mouth(IplImage* img, double resolution, CvRect mouth_rect, Point points[]){
+bool detect_mouth(IplImage* img, double resolution, CvRect mouth_rect, Point points[], CvHaarClassifierCascade* cascade_mouth){
 	CvHaarClassifierCascade* cascade = 0;
 	CvMemStorage* storage = 0;
 	CvRect* mouth = new CvRect();
@@ -1131,8 +1133,9 @@ bool detect_mouth(IplImage* img, double resolution, CvRect mouth_rect, Point poi
 
 
 	// Load the face detector and create empty memory storage
-	char* file = "DetectorMouth.xml";
-	cascade = (CvHaarClassifierCascade*) cvLoad(file, 0, 0, 0);
+	//char* file = "DetectorMouth.xml";
+	//cascade = (CvHaarClassifierCascade*) cvLoad(file, 0, 0, 0);
+	cascade = cascade_mouth;
 	storage = cvCreateMemStorage(0);
 	
 	if(cascade == NULL)
@@ -1190,7 +1193,7 @@ float calculateDistance(CvPoint2D32f pt1, CvPoint2D32f pt2 ) {
     return cvSqrt( (float)(dx*dx + dy*dy)); 
 }
 
-void detect_eye_corners(IplImage* img, double resolution, Point points[]){
+void detect_eye_corners(IplImage* img, double resolution, Point points[], CvHaarClassifierCascade* cascade_eye){
 	CvHaarClassifierCascade* cascade = 0;
 	CvMemStorage* storage = 0;
 	IplImage* eye_region_image;
@@ -1217,8 +1220,9 @@ void detect_eye_corners(IplImage* img, double resolution, Point points[]){
 	}
 	
 	// Load the face detector and create empty memory storage
-	char* file = "DetectorEyes.xml";
-	cascade = (CvHaarClassifierCascade*) cvLoad(file, 0, 0, 0);
+	//char* file = "DetectorEyes.xml";
+	//cascade = (CvHaarClassifierCascade*) cvLoad(file, 0, 0, 0);
+	cascade = cascade_eye;
 	storage = cvCreateMemStorage(0);
 	
 	// Detect objects

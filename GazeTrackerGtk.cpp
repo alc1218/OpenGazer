@@ -68,6 +68,7 @@ GazeTrackerGtk::GazeTrackerGtk(int argc, char **argv):
 				      &MainGazeTracker::clearpoints));
 
 	    picture.show();
+
 	    testbutton->show();
 	    calibratebutton.show();
 	    //savebutton.show();
@@ -77,6 +78,7 @@ GazeTrackerGtk::GazeTrackerGtk(int argc, char **argv):
 	    clearbutton.show();
 	    buttonbar.show();
 	    vbox.show();
+
 	}
 	catch (QuitNow)
 	{

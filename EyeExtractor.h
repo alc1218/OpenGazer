@@ -2,6 +2,7 @@
 #include "utils.h"
 #include "PointTracker.h"
 #include "BlinkDetector.h"
+#include "ExtractEyeFeaturesSegmentation.h"
 
 
 class EyeExtractor {
@@ -11,20 +12,23 @@ class EyeExtractor {
 	BlinkDetector blinkdet;
 	BlinkDetector blinkdet_left;
 	bool blink;
+    ExtractEyeFeaturesSegmentation extractFeatures;
     void processEye(void);
 
 public:
+    bool saveImage;
     static const int eyedx;
     static const int eyedy;
     static const CvSize eyesize;
 
     scoped_ptr<IplImage> eyegrey, eyefloat, eyeimage;
     scoped_ptr<IplImage> eyegrey_left, eyefloat_left, eyeimage_left;
+    IplImage* histogram_horitzontal, * histogram_vertical, * histogram_horitzontal_left, * histogram_vertical_left;
+    scoped_ptr<std::vector<int> > vector_horizontal, vector_vertical, vector_horizontal_left, vector_vertical_left;
 
     EyeExtractor(const PointTracker &tracker);
     void extractEye(const IplImage *origimage) throw (TrackingException);
-    void extractLeftEye(const IplImage *origimage) throw (TrackingException);
+    void extractLeftEye(const IplImage *origimage,double x0, double y0, double x1, double y1) throw (TrackingException);
 	bool isBlinking();
     ~EyeExtractor(void);
 };
-

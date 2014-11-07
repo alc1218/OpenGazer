@@ -35,14 +35,12 @@ GameArea::GameArea(TrackerOutput* op)
 //	this->move(0, 0);
     Glib::signal_idle().connect(sigc::mem_fun(*this, &GameArea::on_idle));
 	output = op;
-	
-	
+
 	add_events(Gdk::BUTTON_PRESS_MASK);
 	add_events(Gdk::BUTTON_RELEASE_MASK);
 	
 	Glib::RefPtr<Gdk::Window> window = get_window();
     //this->signal_key_press_event().connect(sigc::mem_fun(*this, &GameArea::on_idle));
-    	
 
 	orig_image = (IplImage*) cvLoadImage("./background_full.png");
     cvCvtColor(orig_image, orig_image, CV_RGB2BGR);

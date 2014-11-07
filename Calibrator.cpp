@@ -75,7 +75,13 @@ Calibrator::Calibrator(const int &framecount,
                const boost::shared_ptr<WindowPointer> &pointer,
                int dwelltime): 
     MovingTarget(framecount, points, pointer, dwelltime),
-    trackingsystem(trackingsystem)
+    trackingsystem(trackingsystem),
+    
+    vectorDeVectores_horizontal(new vector<vector<int> >), 
+    vectorDeVectores_vertical(new vector<vector<int> >), 
+    vectorDeVectores_horizontal_left(new vector<vector<int> >), 
+    vectorDeVectores_vertical_left(new vector<vector<int> >)
+
 {
     trackingsystem->gazetracker.clear();
     // todo: remove all calibration points
@@ -94,6 +100,9 @@ void Calibrator::process() {
         }
         if (frame >= 11) { // middle    ONUR dwelltime/2 changed to 11
             if(!trackingsystem->eyex.isBlinking()) {
+
+                vectorDeVectores_horizontal->push_back(EyeExtractor::vector_horizontal);
+
                 averageeye->addSample(trackingsystem->eyex.eyefloat.get());
                 averageeye_left->addSample(trackingsystem->eyex.eyefloat_left.get());
                 

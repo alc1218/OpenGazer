@@ -10,7 +10,7 @@ CMD_PREFIX = @
 # NOTHING TO CHANGE AFTER THIS POINT #
 ######################################
 VERSION = eyetracker-1.0.0
-CPPFLAGS = -Wall -Wno-reorder -Wno-sign-compare -Wno-unused-variable -Wno-write-strings -g -O3
+CPPFLAGS = -Wall -Wno-reorder -Wno-sign-compare -Wno-unused-variable -Wno-write-strings -Wno-empty-body -Wno-c++11-extensions -g -O3
 
 # Linux linker parameters and include directories
 ifeq ($(UNAME), Linux)
@@ -24,7 +24,7 @@ ifeq ($(UNAME), Darwin)
 	INCLUDES = -I/usr/local/include
 endif
 
-sources = opengazer.cpp Calibrator.cpp GazeTrackerGtk.cpp HeadTracker.cpp LeastSquares.cpp EyeExtractor.cpp GazeTracker.cpp MainGazeTracker.cpp OutputMethods.cpp PointTracker.cpp FaceDetector.cpp GazeArea.cpp TrackingSystem.cpp GtkStore.cpp Containers.cpp GraphicalPointer.cpp Point.cpp utils.cpp BlinkDetector.cpp FeatureDetector.cpp mir.cpp GameWindow.cpp
+sources = opengazer.cpp Calibrator.cpp GazeTrackerGtk.cpp HeadTracker.cpp LeastSquares.cpp EyeExtractor.cpp GazeTracker.cpp MainGazeTracker.cpp OutputMethods.cpp PointTracker.cpp FaceDetector.cpp GazeArea.cpp TrackingSystem.cpp GtkStore.cpp Containers.cpp GraphicalPointer.cpp Point.cpp utils.cpp BlinkDetector.cpp FeatureDetector.cpp mir.cpp GameWindow.cpp ExtractEyeFeaturesSegmentation.cpp
 objects = $(patsubst %.cpp,%.o,$(sources))
 
 %.o.depends: %.cpp

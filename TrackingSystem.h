@@ -17,7 +17,6 @@ struct TrackingSystem {
     TrackingSystem(CvSize size);
     void doprocessing(const IplImage *frame, 
 		      IplImage *image);
-    void displayeye(IplImage *image, int basex, int basey, 
-		    int stepx, int stepy);
+    void displayeye(IplImage *image);
 
 };

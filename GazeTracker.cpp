@@ -299,7 +299,7 @@ void GazeTracker::addSampleToNN(Point point,
   				const IplImage *eyegrey)
 {
 	// Save the entire grey image for later use
-	IplImage *savedimage = cvCreateImage(cvSize(64, 32), IPL_DEPTH_32F, 1);
+	IplImage *savedimage = cvCreateImage(EyeExtractor::eyesize, IPL_DEPTH_32F, 1);
 	cvCopy(eyefloat, savedimage);
 	
 	all_images[input_count] = savedimage;
@@ -346,7 +346,7 @@ void GazeTracker::addSampleToNN_left(Point point,
   				const IplImage *eyegrey)
 {
 	// Save the entire grey image for later use
-	IplImage *savedimage = cvCreateImage(cvSize(64, 32), IPL_DEPTH_32F, 1);
+	IplImage *savedimage = cvCreateImage(EyeExtractor::eyesize, IPL_DEPTH_32F, 1);
 	cvCopy(eyefloat, savedimage);
 	
 	all_images_left[input_count_left] = savedimage;

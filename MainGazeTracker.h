@@ -10,9 +10,9 @@
 
 #include <sys/time.h>
 
-bool detect_nose(IplImage* img, double resolution, CvRect nose_rect, Point points[]);
-bool detect_mouth(IplImage* img, double resolution, CvRect nose_rect, Point points[]);
-void detect_eye_corners(IplImage* img, double resolution, Point points[]);
+bool detect_nose(IplImage* img, double resolution, CvRect nose_rect, Point points[], CvHaarClassifierCascade* cascade_nose);
+bool detect_mouth(IplImage* img, double resolution, CvRect nose_rect, Point points[], CvHaarClassifierCascade* cascade_mouth);
+void detect_eye_corners(IplImage* img, double resolution, Point points[], CvHaarClassifierCascade* cascade_eye);
 void detect_eyebrow_corners(IplImage* img, double resolution, CvRect eyebrow_rect, Point points[]);
 void check_rect_size(IplImage* image, CvRect* rect);
 CvPoint2D32f* detect_corners_in_grayscale(IplImage* eye_region_image_gray, int& corner_count);
@@ -64,6 +64,10 @@ class MainGazeTracker {
     vector<boost::shared_ptr<AbstractStore> > stores;
     int framecount;
     int cintest;
+    int k;
+    CvHaarClassifierCascade* cascade_nose;
+    CvHaarClassifierCascade* cascade_eye;
+    CvHaarClassifierCascade* cascade_mouth;
     vector<Point> testcurrentpoints;
     vector<Point> testorigpoints;
     int autodetectpointscounter;

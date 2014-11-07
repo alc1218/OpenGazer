@@ -26,7 +26,6 @@ bool GazeArea::on_idle() {
 		gazetracker.cleanUp();
 		exit(0);
     }
-
 	return true;
 }
 
