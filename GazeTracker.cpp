@@ -27,11 +27,21 @@ int Targets::getCurrentTarget(Point point) {
 CalTarget::CalTarget() {}
 
 CalTarget::CalTarget(Point point, 
-		     const IplImage* image, const IplImage* origimage):
+		     const IplImage* image, const IplImage* origimage, vector<int> hist_horizontal,
+			      vector<int> hist_vertical):
     point(point), 
     image(cvCloneImage(image), releaseImage), 
-    origimage(cvCloneImage(origimage), releaseImage) 
+    origimage(cvCloneImage(origimage), releaseImage)
 {
+
+	std::vector<int>::iterator it;
+	it=hist_horizontal.begin();
+
+	vector_horizontal.assign(it, hist_horizontal.end());
+
+	it=hist_vertical.begin();
+
+    vector_vertical.assign(it, hist_vertical.end());
 }
 
 void CalTarget::save(CvFileStorage* out, const char* name) {
@@ -73,6 +83,8 @@ vector<S> getsubvector(vector<T> const& input, S T::*ptr) {
     return output;
 }
 
+// TODO ARCADI CONTINUE
+// Create copy of these two functions, and modify so that they use histograms
 double GazeTracker::imagedistance(const IplImage *im1, const IplImage *im2) {
     double norm = cvNorm(im1, im2, CV_L2);
     return norm*norm;
@@ -86,6 +98,29 @@ double GazeTracker::covariancefunction(SharedImage const& im1,
     return sigma*sigma*exp(-imagedistance(im1.get(),im2.get())/(2*lscale*lscale));
 }
 
+// TODO ARCADI CONTINUE
+// Create copy of these two functions, and modify so that they use histograms
+double GazeTracker::histDistance(vector<int> histogram1, vector<int> histogram2) {
+ 
+    const double sigma = 1.0;
+    const double lscale = 500.0;
+
+	double norm = 0.0;
+
+    for (int i = 0; i < histogram1.size(); i++) {
+    	norm +=  pow(histogram1[i] - histogram2[i], 2); // suma de las diferencias cuadradas
+    }  
+
+    norm = sigma*sigma*exp(-norm / (2*lscale*lscale) );
+
+    return norm;
+}
+
+double GazeTracker::covariancefunction_hist(vector<int> const& histogram1, vector<int> const& histogram2)
+{
+    return histDistance(histogram1, histogram2);
+}
+
 void GazeTracker::updateGPs(void) {
     vector<double> xlabels;
     vector<double> ylabels;
@@ -97,6 +132,14 @@ void GazeTracker::updateGPs(void) {
 
     vector<SharedImage> images = 
 	getsubvector(caltargets, &CalTarget::image);
+
+
+    vector<vector<int> > vector_horizontals = 
+	getsubvector(caltargets, &CalTarget::vector_horizontal);
+
+
+    vector<vector<int> > vector_verticals = 
+	getsubvector(caltargets, &CalTarget::vector_vertical);
 	
 	/*
 cout << "INSIDE updateGPs" << endl;
@@ -105,7 +148,18 @@ cout << "images size: " << images.size();
 */
     gpx.reset(new ImProcess(images, xlabels, covariancefunction, 0.01));
     gpy.reset(new ImProcess(images, ylabels, covariancefunction, 0.01));  
+
+
+// ---------------------------------------------- ARCADI PROCESS ----------------------------------------------
+
+    histx.reset(new HistProcess(vector_horizontals, xlabels, covariancefunction_hist, 0.01));
+    histy.reset(new HistProcess(vector_verticals, ylabels, covariancefunction_hist, 0.01));  
+
+// ------------------------------------------------------------------------------------------------------------
+
+   // TODO ARCADI CONTINUE Create new type of GaussianProcesses (HistProcess) (with different covariance func)
     targets.reset(new Targets(getsubvector(caltargets, &CalTarget::point)));
+
 }
 
 void GazeTracker::updateGPs_left(void) {
@@ -121,8 +175,25 @@ void GazeTracker::updateGPs_left(void) {
 	getsubvector(caltargets_left, &CalTarget::image);
 
 
+    vector<vector<int> > vector_horizontals = 
+	getsubvector(caltargets_left, &CalTarget::vector_horizontal);
+
+
+    vector<vector<int> > vector_verticals = 
+	getsubvector(caltargets_left, &CalTarget::vector_vertical);
+
+
     gpx_left.reset(new ImProcess(images, xlabels, covariancefunction, 0.01));
     gpy_left.reset(new ImProcess(images, ylabels, covariancefunction, 0.01));  
+
+// ---------------------------------------------- ARCADI PROCESS ----------------------------------------------
+
+    histx_left.reset(new HistProcess(vector_horizontals, xlabels, covariancefunction_hist, 0.01));
+    histy_left.reset(new HistProcess(vector_verticals, ylabels, covariancefunction_hist, 0.01));  
+    
+// ------------------------------------------------------------------------------------------------------------
+
+    // TODO ARCADI CONTINUE Create new type of GaussianProcesses (HistProcess) (with different covariance func)
     //targets_left.reset(new Targets(getsubvector(caltargets_left, &CalTarget::point)));
 }
 
@@ -279,17 +350,25 @@ void GazeTracker::clear() {
 
 void GazeTracker::addExemplar(Point point, 
 			      const IplImage *eyefloat, 
-			      const IplImage *eyegrey) 
+			      const IplImage *eyegrey,
+			      vector<int> hist_horizontal,
+			      vector<int> hist_vertical) // TODO ARCADI CONTINUE, Add histogram parameters
 {
-    caltargets.push_back(CalTarget(point, eyefloat, eyegrey));
+
+	cout << "RIGHT" << endl;
+    caltargets.push_back(CalTarget(point, eyefloat, eyegrey, hist_horizontal, hist_vertical)); // TODO ARCADI CONTINUE, Add histograms to caltarget structure
     updateGPs();
 }
 
 void GazeTracker::addExemplar_left(Point point, 
 			      const IplImage *eyefloat, 
-			      const IplImage *eyegrey) 
+			      const IplImage *eyegrey,
+			      vector<int> hist_horizontal_left,
+			      vector<int> hist_vertical_left) 	 // TODO ARCADI CONTINUE, Add histogram parameters
 {
-    caltargets_left.push_back(CalTarget(point, eyefloat, eyegrey));
+
+	cout << "LEFT" << endl;
+    caltargets_left.push_back(CalTarget(point, eyefloat, eyegrey, hist_horizontal_left, hist_vertical_left)); // TODO ARCADI CONTINUE, Add histograms to caltarget structure
     updateGPs_left();
 }
 
@@ -487,10 +566,15 @@ void GazeTracker::load(CvFileStorage *in, CvFileNode *node) {
 							       "caltargets"));
 }
 
-void GazeTracker::update(const IplImage *image, const IplImage *eyegrey) {
+void GazeTracker::update(const IplImage *image, const IplImage *eyegrey, vector<int> vector_horizontal,
+			      vector<int> vector_vertical) {
     if (isActive()) {
-		output.gazepoint = Point(gpx->getmean(SharedImage(image, &ignore)), 
-					 gpy->getmean(SharedImage(image, &ignore)));
+		//output.gazepoint = Point(gpx->getmean(SharedImage(image, &ignore)), 
+		//			 gpy->getmean(SharedImage(image, &ignore)));
+
+		output.gazepoint = Point(histx->getmean(vector_horizontal), 
+					 histy->getmean(vector_vertical));
+
 		output.targetid = getTargetId(output.gazepoint);
 		output.target = getTarget(output.targetid);
 	
@@ -510,10 +594,14 @@ void GazeTracker::update(const IplImage *image, const IplImage *eyegrey) {
     }
 }
 
-void GazeTracker::update_left(const IplImage *image, const IplImage *eyegrey) {
+void GazeTracker::update_left(const IplImage *image, const IplImage *eyegrey, vector<int> vector_horizontal_left,
+			      vector<int> vector_vertical_left) {
     if (isActive()) {
-		output.gazepoint_left = Point(gpx_left->getmean(SharedImage(image, &ignore)), 
-					 gpy_left->getmean(SharedImage(image, &ignore)));
+		//output.gazepoint_left = Point(gpx_left->getmean(SharedImage(image, &ignore)), 
+		//			 gpy_left->getmean(SharedImage(image, &ignore)));
+
+		output.gazepoint_left = Point(histx_left->getmean(vector_horizontal_left), 
+					 histy_left->getmean(vector_vertical_left));
 
 		// Neural network
 		// Resize image to 16x8

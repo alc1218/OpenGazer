@@ -867,7 +867,7 @@ void MainGazeTracker::cleanUp(void) {
 	//rename("out.avi", (base_path.substr(0, base_path.length() - 4) + ".avi").c_str());
 }
 
-
+/*
 void MainGazeTracker::addExemplar(Point exemplar) {
     if (exemplar.x >= EyeExtractor::eyedx && 
 	exemplar.x + EyeExtractor::eyedx < videoinput->size.width &&
@@ -882,6 +882,7 @@ void MainGazeTracker::addExemplar(Point exemplar) {
 						  tracking->eyex.eyegrey_left.get());
 	}
 }
+*/
 
 static vector<Point> scalebyscreen(const vector<Point> &points) {
 	int num_of_monitors = Gdk::Screen::get_default()->get_n_monitors();

@@ -3,6 +3,9 @@
 #define HORIZONTAL_BIN_SIZE 128
 #define VERTICAL_BIN_SIZE 64
 
+static std::vector<int> vector_static_horizontal(HORIZONTAL_BIN_SIZE, 0);
+static std::vector<int> vector_static_vertical(VERTICAL_BIN_SIZE, 0);
+
 ExtractEyeFeaturesSegmentation::ExtractEyeFeaturesSegmentation(CvSize eyesize)
 {
 	sizeImageDisk = 30;
@@ -175,33 +178,28 @@ IplImage* ExtractEyeFeaturesSegmentation::Histogram(	IplImage* blackAndWitheIris
 	//int blackAndWitheIris_summed_horizontal[blackAndWitheIris->width];
 	//int blackAndWitheIris_summed_vertical[blackAndWitheIris->height];
 
+	blackAndWitheIris_summed_horizontal->assign(HORIZONTAL_BIN_SIZE, 0);
+	blackAndWitheIris_summed_vertical->assign(VERTICAL_BIN_SIZE, 0);
+	//memcpy(blackAndWitheIris_summed_horizontal->operator[], array_horizontal, HORIZONTAL_BIN_SIZE*sizeof(int));
+	//memcpy(blackAndWitheIris_summed_vertical->operator[], array_vertical, VERTICAL_BIN_SIZE*sizeof(int));
 
-	//memcpy(blackAndWitheIris_summed_horizontal, array_horizontal, HORIZONTAL_BIN_SIZE*sizeof(int));
-	//memcpy(blackAndWitheIris_summed_vertical, array_vertical, VERTICAL_BIN_SIZE*sizeof(int));
-
-	for (int i=0;i<blackAndWitheIris->width;i++)
-	{
-
-	    for (int k=0;k<blackAndWitheIris->height;k++)
-	    {
-
+	for (int i=0;i<blackAndWitheIris->width;i++) {
+	    for (int k=0;k<blackAndWitheIris->height;k++) {
 			if ((int) data[i + k*width] == 255) {
-				cout << "valor: " << blackAndWitheIris_summed_horizontal->size() << endl;
-				cin.get();
-	    		//(blackAndWitheIris_summed_horizontal[i])++;
-	    		//(blackAndWitheIris_summed_vertical[k])++;
+				blackAndWitheIris_summed_horizontal->operator[](i)++;
+				blackAndWitheIris_summed_vertical->operator[](k)++;
 			}
 	    }
 	}
 
 	//IplImage* hist_horizontal = cvCreateImage(cvSize(blackAndWitheIris->width, blackAndWitheIris->height),IPL_DEPTH_8U,1);
-/*
+
 	cvRectangle(hist_horizontal, cvPoint(0,0), cvPoint(hist_horizontal->width, hist_horizontal->height), cvScalar(0,0,0), -1, 8, 0);
 
 	for (int i=0;i<blackAndWitheIris->width;i++) {
 	    cvLine(hist_horizontal, 
 		   cvPoint(i, hist_horizontal->height),
-		   cvPoint(i, hist_horizontal->height - blackAndWitheIris_summed_horizontal[i]),
+		   cvPoint(i, hist_horizontal->height - blackAndWitheIris_summed_horizontal->operator[](i)),
 		   CV_RGB(255,255,255));
 	}
 
@@ -212,10 +210,10 @@ IplImage* ExtractEyeFeaturesSegmentation::Histogram(	IplImage* blackAndWitheIris
 	for (int i=0;i<blackAndWitheIris->width;i++) {
 	    cvLine(hist_vertical, 
 		   cvPoint(i, hist_vertical->height),
-		   cvPoint(i, hist_vertical->height - blackAndWitheIris_summed_vertical[i]),
+		   cvPoint(i, hist_vertical->height - blackAndWitheIris_summed_vertical->operator[](i)),
 		   CV_RGB(255,255,255));
 	}
-*/
+
 
 
 	/*

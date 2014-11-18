@@ -48,8 +48,8 @@ void TrackingSystem::doprocessing(const IplImage *frame,
 
     headtracker.updatetracker();
     eyex.extractEye(frame);	// throws Tracking Exception
-    gazetracker.update(eyex.eyefloat.get(), eyex.eyegrey.get());
-    gazetracker.update_left(eyex.eyefloat_left.get(), eyex.eyegrey_left.get());
+    gazetracker.update(eyex.eyefloat.get(), eyex.eyegrey.get(), *eyex.vector_horizontal, *eyex.vector_vertical);
+    gazetracker.update_left(eyex.eyefloat_left.get(), eyex.eyegrey_left.get(), *eyex.vector_horizontal_left, *eyex.vector_vertical_left);
 
     displayeye(image);
     tracker.draw(image);
@@ -92,7 +92,7 @@ void TrackingSystem::displayeye(IplImage *image)
 
     // Horizontal histogram Segmentation eye image
     cvSetImageROI(image, cvRect(basex, basey + stepy*3, eyedx, eyedy));
-    cvCopy(eyex.histogram_horitzontal, image); //, eyex.eyeimage.get());
+    cvCopy(eyex.histogram_horizontal, image); //, eyex.eyeimage.get());
 
     // Vertical histogram Segmentation eye image
     cvSetImageROI(image, cvRect(basex, basey + stepy*4, eyedy, eyedx));
@@ -118,7 +118,7 @@ void TrackingSystem::displayeye(IplImage *image)
 
     // Horizontal histogram Segmentation eye image
     cvSetImageROI(image, cvRect(basex + stepx, basey + stepy*3, eyedx, eyedy));
-    cvCopy(eyex.histogram_horitzontal_left, image); //, eyex.eyeimage.get());
+    cvCopy(eyex.histogram_horizontal_left, image); //, eyex.eyeimage.get());
 
     // Vertical histogram Segmentation eye image
     cvSetImageROI(image, cvRect(basex + stepx, basey + stepy*4, eyedy, eyedx));

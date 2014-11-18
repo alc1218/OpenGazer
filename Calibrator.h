@@ -51,8 +51,8 @@ class Calibrator: public MovingTarget {
     scoped_ptr<FeatureDetector> averageeye;
     scoped_ptr<FeatureDetector> averageeye_left;
 
-    scoped_ptr<std::vector<std::vector<int> > > vectorDeVectores_horizontal, vectorDeVectores_vertical, 
-                                                vectorDeVectores_horizontal_left, vectorDeVectores_vertical_left;
+    scoped_ptr<std::vector<std::vector<int> > > vectorOfVectors_horizontal, vectorOfVectors_vertical, 
+                                                vectorOfVectors_horizontal_left, vectorOfVectors_vertical_left;
 
 
 public:
@@ -67,6 +67,7 @@ public:
     virtual void process();
     static vector<Point> scaled(const vector<Point>& points, double x, double y);
     static vector<Point> scaled(const vector<Point>& points, int x, int y, double width, double height);
+    //virtual std::vector<int> magic_function(std::vector<int> res, std::vector<int> vectorX);
 };
 
 

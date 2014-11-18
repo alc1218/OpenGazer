@@ -29,13 +29,13 @@ void EyeExtractor::processEye(void) {
 	cvConvertScale(eyegrey.get(), temp.get());
 	blinkdet.update(eyefloat);
 
-    extractFeatures.processToExtractFeatures(   eyegrey.get(), eyeimage.get(), histogram_horitzontal, 
+    extractFeatures.processToExtractFeatures(   eyegrey.get(), eyeimage.get(), histogram_horizontal, 
                                                 histogram_vertical, vector_horizontal.get(), vector_vertical.get());
 
 	cvConvertScale(eyegrey_left.get(), temp2.get());
 	blinkdet_left.update(eyefloat_left);
 	
-    extractFeatures.processToExtractFeatures(   eyegrey_left.get(), eyeimage_left.get(), histogram_horitzontal_left, 
+    extractFeatures.processToExtractFeatures(   eyegrey_left.get(), eyeimage_left.get(), histogram_horizontal_left, 
                                                 histogram_vertical_left, vector_horizontal_left.get(), vector_vertical_left.get());
 
 	if(blinkdet.getState() >= 2 && blinkdet_left.getState() >= 2) {
@@ -59,7 +59,7 @@ EyeExtractor::EyeExtractor(const PointTracker &tracker):
     eyegrey(cvCreateImage( eyesize, 8, 1 )),
     eyefloat(cvCreateImage( eyesize, IPL_DEPTH_32F, 1 )),
     eyeimage(cvCreateImage( eyesize, 8, 3 )),
-    histogram_horitzontal(cvCreateImage( eyesize, 8, 3 )),
+    histogram_horizontal(cvCreateImage( eyesize, 8, 3 )),
     histogram_vertical(cvCreateImage( cvSize(eyesize.height, eyesize.width), 8, 3 )),
     vector_horizontal(new vector<int> (eyesize.width,0)),
     vector_vertical(new vector<int> (eyesize.height,0)),
@@ -68,7 +68,7 @@ EyeExtractor::EyeExtractor(const PointTracker &tracker):
     eyegrey_left(cvCreateImage( eyesize, 8, 1 )),
     eyefloat_left(cvCreateImage( eyesize, IPL_DEPTH_32F, 1 )),
     eyeimage_left(cvCreateImage( eyesize, 8, 3 )),
-    histogram_horitzontal_left(cvCreateImage( eyesize, 8, 3 )),
+    histogram_horizontal_left(cvCreateImage( eyesize, 8, 3 )),
     histogram_vertical_left(cvCreateImage( cvSize(eyesize.height, eyesize.width), 8, 3 )),
     vector_horizontal_left(new vector<int> (eyesize.width,0)),
     vector_vertical_left(new vector<int> (eyesize.height,0)),
@@ -95,21 +95,16 @@ void EyeExtractor::extractEye(const IplImage *origimage)
     double x1 = tracker.currentpoints[tracker.eyepoint2].x;
     double y1 = tracker.currentpoints[tracker.eyepoint2].y;
 
-    cout << "INITIAL: " << x0 << ", " << y0 << " and " << x1 << ", " << y1 << endl;
     double dh = sqrt(pow((x1-x0),2) + pow((y1-y0),2)); 
     double dx = x1-x0;
     double dy = y1-y0;
     
     double alpha = atan2(dy, dx);// * 180 / PI;
 
-    cout << "alpha" << alpha << endl;
-
     x0 -= dh/30*sin(alpha);
     y0 += dh/30*cos(alpha);
     x1 -= dh/30*sin(alpha);
     y1 += dh/30*cos(alpha);
-
-    cout << "INITIAL: " << x0 << ", " << y0 << " and " << x1 << ", " << y1 << endl;
 
     double factor = 0.17;
     double xfactor = 0.05;

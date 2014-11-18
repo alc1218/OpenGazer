@@ -113,7 +113,7 @@ class MainGazeTracker {
 	void cleanUp(void);
     double euclideanDistance(Point point1, Point point2);
     void addTracker(Point point);
-    void addExemplar(Point exemplar);
+    //void addExemplar(Point exemplar);
     void startCalibration();
     void startTesting();
     void startPlaying();

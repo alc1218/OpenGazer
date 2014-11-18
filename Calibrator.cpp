@@ -1,5 +1,18 @@
 #include "Calibrator.h"
 
+/*
+std::vector<int> magic_function(std::vector<int> res, std::vector<int> vectorX) {
+
+    for (int i = 0; i < vectorX.size(); i++){
+        res[i] += vectorX[i];
+    }
+
+    return res;
+
+}
+*/
+
+
 Calibrator::~Calibrator() {
 #ifdef DEBUG
     cout << "Destroying calibrator" << endl;
@@ -77,10 +90,10 @@ Calibrator::Calibrator(const int &framecount,
     MovingTarget(framecount, points, pointer, dwelltime),
     trackingsystem(trackingsystem),
     
-    vectorDeVectores_horizontal(new vector<vector<int> >), 
-    vectorDeVectores_vertical(new vector<vector<int> >), 
-    vectorDeVectores_horizontal_left(new vector<vector<int> >), 
-    vectorDeVectores_vertical_left(new vector<vector<int> >)
+    vectorOfVectors_horizontal(new vector<vector<int> >), 
+    vectorOfVectors_vertical(new vector<vector<int> >), 
+    vectorOfVectors_horizontal_left(new vector<vector<int> >), 
+    vectorOfVectors_vertical_left(new vector<vector<int> >)
 
 {
     trackingsystem->gazetracker.clear();
@@ -101,7 +114,11 @@ void Calibrator::process() {
         if (frame >= 11) { // middle    ONUR dwelltime/2 changed to 11
             if(!trackingsystem->eyex.isBlinking()) {
 
-                vectorDeVectores_horizontal->push_back(EyeExtractor::vector_horizontal);
+                vectorOfVectors_horizontal->push_back(*trackingsystem->eyex.vector_horizontal);
+                vectorOfVectors_vertical->push_back(*trackingsystem->eyex.vector_vertical);
+                vectorOfVectors_horizontal_left->push_back(*trackingsystem->eyex.vector_horizontal_left);
+                vectorOfVectors_vertical_left->push_back(*trackingsystem->eyex.vector_vertical_left);
+
 
                 averageeye->addSample(trackingsystem->eyex.eyefloat.get());
                 averageeye_left->addSample(trackingsystem->eyex.eyefloat_left.get());
@@ -123,13 +140,107 @@ void Calibrator::process() {
         }
     
         if (frame == dwelltime-1) { // end
+
+            /*
+
+            std::accumulate(vectorOfVectors_horizontal->begin()+getPointNo()+1, vectorOfVectors_horizontal->end(), vectorOfVectors_horizontal->begin()+getPointNo(), 
+                                        magic_function);
+
+            */
+
+            int sizeVectorOfVectors = vectorOfVectors_horizontal->size();
+
+            for (int i = sizeVectorOfVectors-1; i > getPointNo(); i--) {
+
+                int sizeVector = vectorOfVectors_horizontal->operator[](i).size();
+
+                for (int j = 0; j < sizeVector; j++) {
+
+                    vectorOfVectors_horizontal->operator[](getPointNo()).operator[](j) += vectorOfVectors_horizontal->operator[](i).operator[](j);
+                    vectorOfVectors_horizontal_left->operator[](getPointNo()).operator[](j) += vectorOfVectors_horizontal_left->operator[](i).operator[](j);
+                    
+                }
+
+                sizeVector = vectorOfVectors_vertical->operator[](i).size();
+
+                for (int j = 0; j < sizeVector; j++) {
+
+                    vectorOfVectors_vertical->operator[](getPointNo()).operator[](j) += vectorOfVectors_vertical->operator[](i).operator[](j);
+                    vectorOfVectors_vertical_left->operator[](getPointNo()).operator[](j) += vectorOfVectors_vertical_left->operator[](i).operator[](j);
+                    
+                }
+
+                vectorOfVectors_horizontal->pop_back();
+                vectorOfVectors_vertical->pop_back();
+                vectorOfVectors_horizontal_left->pop_back();
+                vectorOfVectors_vertical_left->pop_back();
+
+            }
+
+            for (int j = 0; j < vectorOfVectors_horizontal->operator[](getPointNo()).size(); j++) {
+
+                vectorOfVectors_horizontal->operator[](getPointNo()).operator[](j) = floor(vectorOfVectors_horizontal->operator[](getPointNo()).operator[](j) / (sizeVectorOfVectors - getPointNo()));
+                vectorOfVectors_horizontal_left->operator[](getPointNo()).operator[](j) = floor(vectorOfVectors_horizontal_left->operator[](getPointNo()).operator[](j) / (sizeVectorOfVectors - getPointNo()));
+            }
+
+            for (int j = 0; j < vectorOfVectors_vertical->operator[](getPointNo()).size(); j++) {
+
+                vectorOfVectors_vertical->operator[](getPointNo()).operator[](j) = floor(vectorOfVectors_vertical->operator[](getPointNo()).operator[](j) / (sizeVectorOfVectors - getPointNo()));
+                vectorOfVectors_vertical_left->operator[](getPointNo()).operator[](j) = floor(vectorOfVectors_vertical_left->operator[](getPointNo()).operator[](j) / (sizeVectorOfVectors - getPointNo()));
+            
+            }
+
+            /*
+                std::vector<int> result;
+
+                it = vectorOfVectors_horizontal->operator[](i).begin();
+
+                std::transform(vectorOfVectors_horizontal->operator[](getPointNo()).begin(), vectorOfVectors_horizontal->operator[](getPointNo()).end(), vectorOfVectors_horizontal->operator[](i).begin(), 
+                   std::back_inserter(result), std::plus<int>());
+
+                vectorOfVectors_horizontal->operator[](getPointNo()).assign(it, vectorOfVectors_horizontal->operator[](i).end());
+
+                vectorOfVectors_horizontal->pop_back();
+
+            }
+
+            */
+            
+/*
+
+            for (int j = 0; j < vectorOfVectors_horizontal->operator[](0).size(); j++){
+                
+                cout << "vectorOfVectors_horizontal[" << j << "]: " << vectorOfVectors_horizontal->operator[](getPointNo()).operator[](j) << endl;
+                cout << "vectorOfVectors_horizontal_left[" << j << "]: " << vectorOfVectors_horizontal_left->operator[](getPointNo()).operator[](j) << endl;
+                
+            }
+            
+            cin.get();
+
+            for (int j = 0; j < vectorOfVectors_vertical->operator[](0).size(); j++){
+                
+                cout << "vectorOfVectors_vertical[" << j << "]: " << vectorOfVectors_vertical->operator[](getPointNo()).operator[](j) << endl;
+                cout << "vectorOfVectors_vertical_left[" << j << "]: " << vectorOfVectors_vertical_left->operator[](getPointNo()).operator[](j) << endl;
+                
+            }
+            
+            cin.get();
+
+*/
+
+
             trackingsystem->gazetracker.
             addExemplar(points[id], averageeye->getMean().get(),
-                    trackingsystem->eyex.eyegrey.get());
+                    trackingsystem->eyex.eyegrey.get(), 
+                    vectorOfVectors_horizontal->operator[](getPointNo()), vectorOfVectors_vertical->operator[](getPointNo()));
+
+
             // ONUR DUPLICATED CODE
             trackingsystem->gazetracker.
             addExemplar_left(points[id], averageeye_left->getMean().get(),
-                    trackingsystem->eyex.eyegrey_left.get());
+                    trackingsystem->eyex.eyegrey_left.get(), 
+                    vectorOfVectors_horizontal_left->operator[](getPointNo()), vectorOfVectors_vertical_left->operator[](getPointNo()));
+
                 
             if(id == points.size()-1) {
                 tracker_status = STATUS_CALIBRATED;

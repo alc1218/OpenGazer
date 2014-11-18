@@ -3,6 +3,7 @@
 #include "GaussianProcess.cpp"
 
 typedef MeanAdjustedGaussianProcess<SharedImage> ImProcess;
+typedef MeanAdjustedGaussianProcess<vector<int> > HistProcess;	// TODO ARCADI CONTINUE
 
 
 const int nn_eyewidth = 16;
@@ -20,8 +21,11 @@ struct CalTarget {
     Point point;
     SharedImage image, origimage;
 
+    vector<int> vector_horizontal, vector_vertical;
+
     CalTarget();
-    CalTarget(Point point, const IplImage* image, const IplImage* origimage);
+    CalTarget(Point point, const IplImage* image, const IplImage* origimage, vector<int> vector_horizontal,
+			      vector<int> vector_vertical);
 
     void save(CvFileStorage* out, const char* name=NULL);
     void load(CvFileStorage* in, CvFileNode *node);
@@ -47,11 +51,13 @@ struct TrackerOutput {
 
 class GazeTracker {
     scoped_ptr<ImProcess> gpx, gpy;
+    scoped_ptr<HistProcess> histx, histy;
     vector<CalTarget> caltargets;
     scoped_ptr<Targets> targets;
 
 	// ONUR DUPLICATED CODE FOR LEFT EYE
     scoped_ptr<ImProcess> gpx_left, gpy_left;
+    scoped_ptr<HistProcess> histx_left, histy_left;
     vector<CalTarget> caltargets_left;
     //scoped_ptr<Targets> targets_left;
     
@@ -69,6 +75,9 @@ class GazeTracker {
     static double covariancefunction(const SharedImage& im1, 
 				     const SharedImage& im2);
 
+    static double histDistance(vector<int> hist_horizontal, vector<int> hist_vertical);
+    static double covariancefunction_hist(const vector<int>& hist_horizontal, const vector<int>& hist_vertical);
+
     void updateGPs(void);
 	void updateGPs_left(void);
 
@@ -84,9 +93,11 @@ public:
 
     void clear();
     void addExemplar(Point point, 
-		     const IplImage *eyefloat, const IplImage *eyegrey);
+		     const IplImage *eyefloat, const IplImage *eyegrey, vector<int> vector_horizontal,
+			      vector<int> vector_vertical);
     void addExemplar_left(Point point, 
-		     const IplImage *eyefloat, const IplImage *eyegrey);
+		     const IplImage *eyefloat, const IplImage *eyegrey, vector<int> vector_horizontal_left,
+			      vector<int> vector_vertical_left);
 	// Neural network
 	void addSampleToNN(Point point, 
 			const IplImage *eyefloat, const IplImage *eyegrey);
@@ -104,8 +115,10 @@ public:
     void save(CvFileStorage *out, const char *name);
     void load(void);
     void load(CvFileStorage *in, CvFileNode *node);
-    void update(const IplImage *image, const IplImage *eyegrey);
-    void update_left(const IplImage *image, const IplImage *eyegrey);
+    void update(const IplImage *image, const IplImage *eyegrey, vector<int> vector_horizontal,
+			      vector<int> vector_vertical);
+    void update_left(const IplImage *image, const IplImage *eyegrey, vector<int> vector_horizontal_left,
+			      vector<int> vector_vertical_left);
     int getTargetId(Point point);
 	void calculateTrainingErrors();
 	void printTrainingErrors();
