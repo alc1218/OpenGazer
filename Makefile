@@ -33,6 +33,8 @@ og_objects = $(patsubst %.cpp,%.o,$(og_sources))
 test_sources = tester.cpp Calibrator.cpp GazeTrackerGtk.cpp HeadTracker.cpp LeastSquares.cpp EyeExtractor.cpp GazeTracker.cpp MainGazeTracker.cpp OutputMethods.cpp PointTracker.cpp FaceDetector.cpp GazeArea.cpp TrackingSystem.cpp GtkStore.cpp Containers.cpp GraphicalPointer.cpp Point.cpp utils.cpp BlinkDetector.cpp FeatureDetector.cpp mir.cpp GameWindow.cpp ExtractEyeFeaturesSegmentation.cpp
 test_objects = $(patsubst %.cpp,%.o,$(test_sources))
 
+all: opengazer tester
+
 opengazer: 	$(og_objects)
 	$(CMD_PREFIX)g++ -o $@ $^ `pkg-config cairomm-1.0 opencv gtkmm-2.4 --libs`  $(LINKER) $(CPPFLAGS)
 
@@ -47,6 +49,7 @@ tester: 	$(test_objects)
 
 clean:
 	$(CMD_PREFIX)rm -rf opengazer
+	$(CMD_PREFIX)rm -rf tester
 	$(CMD_PREFIX)rm -rf *.o
 	$(CMD_PREFIX)rm -rf *.o.depends
 

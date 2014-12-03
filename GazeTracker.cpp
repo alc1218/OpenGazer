@@ -1,6 +1,7 @@
 #include "GazeTracker.h"
 #include "EyeExtractor.h"
 #include "mir.h"
+#include <time.h>
 
 fann_type *all_inputs[1000], *all_outputs[1000];
 fann_type *all_inputs_left[1000], *all_outputs_left[1000];
@@ -102,8 +103,8 @@ double GazeTracker::covariancefunction(SharedImage const& im1,
 // Create copy of these two functions, and modify so that they use histograms
 double GazeTracker::histDistance(vector<int> histogram1, vector<int> histogram2) {
  
-    const double sigma = 1.0;
-    const double lscale = 500.0;
+    const double sigma = 1.0; // 1.0;
+    const double lscale = 100.0; // 500.00;
 
 	double norm = 0.0;
 
@@ -112,6 +113,9 @@ double GazeTracker::histDistance(vector<int> histogram1, vector<int> histogram2)
     }  
 
     norm = sigma*sigma*exp(-norm / (2*lscale*lscale) );
+
+    //cout << "norm: " << norm << endl;
+    //cin.get();
 
     return norm;
 }
@@ -155,6 +159,19 @@ cout << "images size: " << images.size();
     histx.reset(new HistProcess(vector_horizontals, xlabels, covariancefunction_hist, 0.01));
     histy.reset(new HistProcess(vector_verticals, ylabels, covariancefunction_hist, 0.01));  
 
+/*
+    vector<vector<int> > vectors_horizontals_and_verticals =
+	getsubvector(caltargets, &CalTarget::vector_horizontal);
+
+
+	copy( vector_verticals[vector_horizontals.size()-1].begin(), vector_verticals[vector_horizontals.size()-1].end(), back_inserter(vectors_horizontals_and_verticals[vector_horizontals.size()-1]));
+
+
+    histx.reset(new HistProcess(vectors_horizontals_and_verticals, xlabels, covariancefunction_hist, 0.01));
+    histy.reset(new HistProcess(vectors_horizontals_and_verticals, ylabels, covariancefunction_hist, 0.01));  
+*/
+    // TODO ARCADI MIR.CPP
+    
 // ------------------------------------------------------------------------------------------------------------
 
    // TODO ARCADI CONTINUE Create new type of GaussianProcesses (HistProcess) (with different covariance func)
@@ -190,7 +207,17 @@ void GazeTracker::updateGPs_left(void) {
 
     histx_left.reset(new HistProcess(vector_horizontals, xlabels, covariancefunction_hist, 0.01));
     histy_left.reset(new HistProcess(vector_verticals, ylabels, covariancefunction_hist, 0.01));  
-    
+
+/*
+    vector<vector<int> > vectors_horizontals_and_verticals =
+	getsubvector(caltargets_left, &CalTarget::vector_horizontal);
+
+	copy( vector_verticals[vector_horizontals.size()-1].begin(), vector_verticals[vector_horizontals.size()-1].end(), back_inserter(vectors_horizontals_and_verticals[vector_horizontals.size()-1]));
+
+    histx_left.reset(new HistProcess(vectors_horizontals_and_verticals, xlabels, covariancefunction_hist, 0.01));
+    histy_left.reset(new HistProcess(vectors_horizontals_and_verticals, ylabels, covariancefunction_hist, 0.01));  
+*/
+
 // ------------------------------------------------------------------------------------------------------------
 
     // TODO ARCADI CONTINUE Create new type of GaussianProcesses (HistProcess) (with different covariance func)
@@ -575,6 +602,21 @@ void GazeTracker::update(const IplImage *image, const IplImage *eyegrey, vector<
 		output.gazepoint = Point(histx->getmean(vector_horizontal), 
 					 histy->getmean(vector_vertical));
 
+/*
+    	vector<int> vector_horizontal_and_vertical;
+		
+		copy( vector_horizontal.begin(), vector_horizontal.end(), back_inserter(vector_horizontal_and_vertical));
+		copy( vector_vertical.begin(), vector_vertical.end(), back_inserter(vector_horizontal_and_vertical));
+
+		output.gazepoint = Point(histx->getmean(vector_horizontal_and_vertical), 
+					 histy->getmean(vector_horizontal_and_vertical));
+*/
+		//double* out = regression.CalculateOutput(vector_horizontal, vector_vertical);
+
+		//output.gazepoint = Point(out[0], out[1]);
+
+		
+
 		output.targetid = getTargetId(output.gazepoint);
 		output.target = getTarget(output.targetid);
 	
@@ -603,6 +645,15 @@ void GazeTracker::update_left(const IplImage *image, const IplImage *eyegrey, ve
 		output.gazepoint_left = Point(histx_left->getmean(vector_horizontal_left), 
 					 histy_left->getmean(vector_vertical_left));
 
+/*
+    	vector<int> vector_horizontal_and_vertical_left;
+		
+		copy( vector_horizontal_left.begin(), vector_horizontal_left.end(), back_inserter(vector_horizontal_and_vertical_left));
+		copy( vector_vertical_left.begin(), vector_vertical_left.end(), back_inserter(vector_horizontal_and_vertical_left));
+
+		output.gazepoint_left = Point(histx_left->getmean(vector_horizontal_and_vertical_left), 
+					 histy_left->getmean(vector_horizontal_and_vertical_left));
+*/
 		// Neural network
 		// Resize image to 16x8
 		cvResize(eyegrey, nn_eye);
@@ -701,5 +752,245 @@ int GazeTracker::getTargetId(Point point) {
 Point GazeTracker::getTarget(int id) {
     return targets->targets[id];
 }
+
+
+
+
+
+    CalculateRegression::CalculateRegression():
+    inputIndex(0),
+    beta(-1),
+    gamma(-1)
+    {
+    }
+
+    //CalculateRegression::CalculateRegression(): {};
+
+    void CalculateRegression::CalculateMedian(Point point, vector<int> sample_horizontal, vector<int> sample_vertical){
+
+        int i, j;
+
+        fv[inputIndex] = point.x;
+		sigv[inputIndex] = 0;
+
+        accumulate_horizontal = 0;
+
+        for (i = 0; i < sample_horizontal.size(); i++) {
+            XV2[inputIndex][0] += sample_horizontal[i] * (i + 1);
+            accumulate_horizontal += sample_horizontal[i];
+        }
+
+        XV2[inputIndex][0] = XV2[inputIndex][0] / accumulate_horizontal;
+
+        accumulate_vertical = 0;
+
+        for (j = 0; j < sample_vertical.size(); j++) {
+            XV2[inputIndex][2] += sample_vertical[j] * (j + 1);
+            accumulate_vertical += sample_vertical[j];
+        }
+
+        XV2[inputIndex][2] = XV2[inputIndex][2] / accumulate_vertical;
+
+
+    }
+
+    void CalculateRegression::CalculateStandardDeviation(vector<int> sample_horizontal, vector<int> sample_vertical){
+
+        int i, j;
+        double medianIndex = XV2[inputIndex][0];
+
+        for (i = 0; i < sample_horizontal.size(); i++) {
+            XV2[inputIndex][1] += pow((i + 1) - medianIndex, 2) * sample_horizontal[i];
+        }
+
+        XV2[inputIndex][1] = XV2[inputIndex][1] / accumulate_horizontal;
+
+        medianIndex = XV2[inputIndex][2];
+
+        for (j = 0; j < sample_vertical.size(); j++) {
+            XV2[inputIndex][3] += pow((j + 1) - medianIndex, 2) * sample_vertical[j];
+        }
+
+        XV2[inputIndex][3] = XV2[inputIndex][3] / accumulate_vertical;
+
+        inputIndex++; // VIGILA CON EL INDICE
+
+    }
+
+
+    double CalculateRegression::CalculateMedianSingleInput(vector<int> sample){
+
+        int i, j;
+        double aux = 0;
+
+        double accumulate = 0;
+
+        for (i = 0; i < sample.size(); i++) {
+            aux += sample[i] * (i + 1);
+            accumulate += sample[i];
+        }
+
+        return aux / accumulate;
+
+    }
+
+    double CalculateRegression::CalculateStandardDeviationSingleInput(vector<int> sample, double medianIndex){
+
+
+        int i, j;
+        double aux = 0;
+
+        double accumulate = 0;
+
+        for (i = 0; i < sample.size(); i++) {
+            aux += pow((i + 1) - medianIndex, 2) * sample[i];
+            accumulate += sample[i];
+        }
+
+        aux = aux / accumulate;
+
+        return aux;
+
+    }
+
+    void CalculateRegression::AddSample(Point point, vector<int> sample_horizontal, vector<int> sample_vertical){
+    	// TODO UNCOMMENT
+        //fv[inputIndex][0] = point.x;
+        //fv[inputIndex][1] = point.y;
+        fv[inputIndex] = point.x;
+        
+        sigv[inputIndex] = 0;
+
+        int i, totalSize;
+
+        for (i = 0; i < sample_horizontal.size(); i++) {
+            XV[inputIndex][i] = sample_horizontal[i];
+        }
+        for (; i < SIZESAMPLE; i++) {
+            XV[inputIndex][i] = sample_vertical[i];
+        }
+
+        inputIndex++;
+
+    }
+
+    void CalculateRegression::CalculateRegressionTranning(){
+
+        for (int i = 0; i < 15; i++) {
+            cout << "INPUT " << i << "= " << XV2[i][0] << " , " << XV2[i][1]<< " , " << XV2[i][2]<< " , " << XV2[i][3] << endl;
+            cout << "OUTPUT " << i << "= " << fv[i] << endl;
+        }
+
+		cout << "ANTES" << endl;        
+
+/*
+Calculate the best parameters beta and gamma
+
+Input arguments:
+    nfunc   Number of functions approximated
+    ndim    Dimension of the approximation space (>0)
+    nv      number of value data points (>0)
+    xv      ndim * nv dimensional array, value data points
+    fv      nfunc * nv dimensional array, function values at value data points
+    sigv    nv dimensional array, measurement error of value data points
+    ng      number of gradient data points (>=0)
+    xg      ndim * ng dimensional array, gradient data points
+    fg      nfunc * ng * ndim dimensional array, function gradients at
+            gradient data points
+    sigg    ng dimensional array, measurement error of gradient data points
+    N       The Taylor order parameter (>0)
+    P       The polynomial exactness parameter (>=0)
+    safety  The safety factor, must be greater than 0.
+            Higher than 1 will produce a conservative (larger) gamma,
+            lower than 1 will produce a aggressive (smaller) gamma.
+Output arguments:
+    beta    The magnitude parameter
+    gamma   The wavenumber parameter
+Return value:
+    0 if ok, -1 if error.
+*/
+
+
+        mirBetaGamma(1, 4, inputIndex, (double*) XV2, (double*) fv, sigv, 0, NULL, NULL, NULL,
+                     binomialInv(inputIndex, 2) - 1, 2, 50.0, &beta, &gamma);
+
+
+
+		cout << "DESPUES" << endl;
+
+        cout << "CALIBRATED, VALUES FOR beta=" << beta << ", gamma=" << gamma << endl;
+
+    }
+
+    double* CalculateRegression::CalculateOutput(vector<int> sample_horizontal, vector<int> sample_vertical){
+        
+    	double *output = new double[2];
+		double sigma[1];
+
+
+		if(beta == -1 && gamma == -1) {
+			output[0] = 0;
+			output[1] = 0;
+
+			return output;
+		}
+
+		double x[1][4];
+
+		x[0][0] = CalculateMedianSingleInput(sample_horizontal);
+		x[0][1] = CalculateStandardDeviationSingleInput(sample_horizontal, x[0][0]);
+		x[0][2] = CalculateMedianSingleInput(sample_vertical);
+		x[0][3] = CalculateStandardDeviationSingleInput(sample_vertical, x[0][2]);
+
+		cout << "INPUTS: " << x[0][0] << " " << x[0][1] << " " << x[0][2] << " " << x[0][3] << endl;
+/*
+Input arguments:
+    nfunc   Number of functions approximated
+    ndim    Dimension of the approximation space (>0)
+    nx      number of approximation points
+    x       ndim * nx dimensional array, the approximation points (*)
+    nv      number of value data points (>0)
+    xv      ndim * nv dimensional array, value data points (*)
+    fv      nv * nfunc dimensional array, function values at value data points
+            (**)
+    sigv    nv dimensional array, measurement error of value data points
+    ng      number of gradient data points (>=0)
+    xg      ndim * ng dimensional array, gradient data points (*)
+    fg      nfunc * ng * ndim dimensional array, function gradients at
+            gradient data points (***)
+    sigg    ng dimensional array, measurement error of gradient data points
+    beta    The magnitude parameter (>0)
+    gamma   The wavenumber parameter (>0)
+    N       The Taylor order parameter (>0)
+    P       The polynomial exactness parameter (>=0)
+Output arguments:
+    fx      nx * nfunc dimensional array, the approximation function value
+            at each approximation point (**)
+    sigma   nx dimensional array, estimated approximation error at each
+            approximation point
+Return value:
+    0 if ok, -1 if error.
+*/
+
+		//clock_t launch = clock();
+
+		// En el 4o parametro va x
+
+        mirEvaluate(1, 4, 1, (double*) x, inputIndex, (double*) XV2, (double*) fv, sigv,
+                0, NULL, NULL, NULL, beta, gamma, binomialInv(inputIndex, 2) - 1, 2, output, sigma);
+
+
+		//clock_t done = clock();
+		//double diff = (done - launch) / (double) CLOCKS_PER_SEC;
+
+		//cout << "diff: " << diff << endl;
+		//cin.get();
+
+
+        output[1] = 100;
+
+        return output;
+
+    }
 
 

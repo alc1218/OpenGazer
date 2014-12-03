@@ -229,11 +229,15 @@ void Calibrator::process() {
 */
 
 
+            trackingsystem->gazetracker.regression.AddSample(points[id], vectorOfVectors_horizontal->operator[](getPointNo()), vectorOfVectors_vertical->operator[](getPointNo()));
+
             trackingsystem->gazetracker.
             addExemplar(points[id], averageeye->getMean().get(),
                     trackingsystem->eyex.eyegrey.get(), 
                     vectorOfVectors_horizontal->operator[](getPointNo()), vectorOfVectors_vertical->operator[](getPointNo()));
 
+
+            trackingsystem->gazetracker.regression.AddSample(points[id], vectorOfVectors_horizontal_left->operator[](getPointNo()), vectorOfVectors_vertical_left->operator[](getPointNo()));
 
             // ONUR DUPLICATED CODE
             trackingsystem->gazetracker.
@@ -241,7 +245,16 @@ void Calibrator::process() {
                     trackingsystem->eyex.eyegrey_left.get(), 
                     vectorOfVectors_horizontal_left->operator[](getPointNo()), vectorOfVectors_vertical_left->operator[](getPointNo()));
 
-                
+            cout << "Puntos: " << points[getPointNo()].x << ", " << points[getPointNo()].y << endl;
+
+            //trackingsystem->gazetracker.regression.CalculateMedian(points[id], vectorOfVectors_horizontal_left->operator[](getPointNo()), vectorOfVectors_vertical_left->operator[](getPointNo()));
+            //trackingsystem->gazetracker.regression.CalculateStandardDeviation(vectorOfVectors_horizontal_left->operator[](getPointNo()), vectorOfVectors_vertical_left->operator[](getPointNo()));
+
+
+            //trackingsystem->gazetracker.regression.AddSample(points[id], vectorOfVectors_horizontal_left->operator[](getPointNo()), vectorOfVectors_vertical_left->operator[](getPointNo()));          
+
+            //trackingsystem->gazetracker.regression.CalculateRegressionTranning();
+
             if(id == points.size()-1) {
                 tracker_status = STATUS_CALIBRATED;
                 is_tracker_calibrated = true;

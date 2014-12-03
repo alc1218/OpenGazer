@@ -6,8 +6,12 @@
 #include "Containers.h"
 #include "GraphicalPointer.h"
 #include "FeatureDetector.h"
+#include "mir.h"
+
 
 class FrameProcessing;
+
+
 
 class FrameFunction: 
 public Containee<FrameProcessing, FrameFunction> 
@@ -45,6 +49,7 @@ class MovingTarget: public FrameFunction {
     int getPointNo();
 };
 
+
 class Calibrator: public MovingTarget {
     static const Point defaultpointarr[];
     boost::shared_ptr<TrackingSystem> trackingsystem;
@@ -58,11 +63,13 @@ class Calibrator: public MovingTarget {
 public:
     static vector<Point> defaultpoints;
     static vector<Point> loadpoints(istream& in);
+
+
     Calibrator(const int &frameno, 
-	       const boost::shared_ptr<TrackingSystem> &trackingsystem, 
-	       const vector<Point>& points, 
-	       const boost::shared_ptr<WindowPointer> &pointer,
-	       int dwelltime=20);
+           const boost::shared_ptr<TrackingSystem> &trackingsystem, 
+           const vector<Point>& points, 
+           const boost::shared_ptr<WindowPointer> &pointer,
+           int dwelltime=20);
     virtual ~Calibrator();
     virtual void process();
     static vector<Point> scaled(const vector<Point>& points, double x, double y);

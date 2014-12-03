@@ -520,7 +520,7 @@ void MainGazeTracker::doprocessing(void) {
 
 	if(status.size())
 		for(k=0; k<status.size(); k++)
-			cout << "status " << k << ": " << (status[k] ? "TRUE" : "FALSE") << endl;
+//			cout << "status " << k << ": " << (status[k] ? "TRUE" : "FALSE") << endl;
 			//if (tracking->tracker.countactivepoints() < 6 && autodetectpointscounter%50==0){
 			if (tracking->tracker.countactivepoints() < 5 && autodetectpointscounter>20){
 				autodetectpointscounter = 0;

@@ -2,6 +2,7 @@
 #include <math.h>
 #define HORIZONTAL_BIN_SIZE 128
 #define VERTICAL_BIN_SIZE 64
+#define ExtraSize 3
 
 static std::vector<int> vector_static_horizontal(HORIZONTAL_BIN_SIZE, 0);
 static std::vector<int> vector_static_vertical(VERTICAL_BIN_SIZE, 0);
@@ -65,7 +66,7 @@ void ExtractEyeFeaturesSegmentation::processToExtractFeatures(	IplImage* Tempora
 		}
 	}
 
-	cvSetImageROI(Temporary, cvRect(MinLoc[i].x-5, MinLoc[i].y, irisTemplateDisk[i]->width+10, irisTemplateDisk[i]->height));
+	cvSetImageROI(Temporary, cvRect(MinLoc[i].x - (ExtraSize * 2), MinLoc[i].y, irisTemplateDisk[i]->width + (ExtraSize * 4), irisTemplateDisk[i]->height + ExtraSize));
 
 	IplImage* finalIris = Segmentation(Temporary);
 
@@ -73,7 +74,7 @@ void ExtractEyeFeaturesSegmentation::processToExtractFeatures(	IplImage* Tempora
 
 	cvRectangle(blackAndWitheIris, cvPoint(0,0), cvPoint(TemporaryColor->width,TemporaryColor->height), cvScalar(0, 0, 0), -1, 8, 0);
 
-	cvSetImageROI(blackAndWitheIris, cvRect(MinLoc[i].x-5, MinLoc[i].y, irisTemplateDisk[i]->width+10, irisTemplateDisk[i]->height));
+	cvSetImageROI(blackAndWitheIris, cvRect(MinLoc[i].x - (ExtraSize * 2), MinLoc[i].y, irisTemplateDisk[i]->width + (ExtraSize * 4), irisTemplateDisk[i]->height + ExtraSize));
 
 	cvCopy(finalIris, blackAndWitheIris);
 
@@ -83,7 +84,7 @@ void ExtractEyeFeaturesSegmentation::processToExtractFeatures(	IplImage* Tempora
 
 	// Iris detected
 
-	cvSetImageROI(TemporaryColor, cvRect(MinLoc[i].x-5, MinLoc[i].y, irisTemplateDisk[i]->width+10, irisTemplateDisk[i]->height));
+	cvSetImageROI(TemporaryColor, cvRect(MinLoc[i].x - (ExtraSize * 2), MinLoc[i].y, irisTemplateDisk[i]->width + (ExtraSize * 4), irisTemplateDisk[i]->height + ExtraSize));
 
 	IplImage* aux = cvCreateImage(cvGetSize(TemporaryColor),IPL_DEPTH_8U,3);
 
@@ -116,13 +117,32 @@ IplImage* ExtractEyeFeaturesSegmentation::constructTemplateDisk(int sizeDisk) {
 IplImage* ExtractEyeFeaturesSegmentation::Segmentation(IplImage* Temporary) {
 
 	IplImage* im_bw = cvCreateImage(cvGetSize(Temporary),IPL_DEPTH_8U,1);
-	cvThreshold(Temporary, im_bw, 50, 255, CV_THRESH_BINARY | CV_THRESH_OTSU);
+	cvThreshold(Temporary, im_bw, 125, 255, CV_THRESH_BINARY);
 
-	IplImage* im_bw2 = cvCreateImage(cvGetSize(Temporary),IPL_DEPTH_8U,3);
+/*
+	
 
-	cvCvtColor(im_bw,im_bw2,CV_GRAY2RGB);
+	cvNamedWindow("mainWin", CV_WINDOW_AUTOSIZE); 
+	cvMoveWindow("mainWin", Temporary->width, Temporary->height);
+
+	cvShowImage("mainWin", im_bw );
+
+	//cin.get();
+
+*/	
+
+
+	//IplImage* im_bw2 = cvCreateImage(cvGetSize(Temporary),IPL_DEPTH_8U,3);
+
+	//cvCvtColor(im_bw,im_bw2,CV_GRAY2RGB);
 
 	cvInRangeS(im_bw, cvScalar(0,0,0), cvScalar(0,255,0), im_bw);
+
+	//cvNamedWindow("a", CV_WINDOW_AUTOSIZE); 
+	//cvMoveWindow("a", im_bw->width, im_bw->height);
+
+	//cvShowImage("a", im_bw );
+
 
 	return im_bw;
 }

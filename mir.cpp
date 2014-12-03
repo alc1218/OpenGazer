@@ -149,8 +149,10 @@ int mirEvaluate(int nfunc, int ndim, int nx, double* x,
     a = (double*) malloc(sizeof(double) * nx * (nv + ng * ndim));
     av = a;
     ag = a + nx * nv;
+
     ierr = mirBasis(ndim, nx, x, nv, xv, sigv, ng, xg, sigg,
                     beta, gamma, N, P, av, ag, sigma);
+
     if (ierr < 0) return -1;
 
     for (ix = 0; ix < nx; ++ix) {
@@ -171,6 +173,7 @@ int mirEvaluate(int nfunc, int ndim, int nx, double* x,
         av += nv;
         ag += ng * ndim;
     }
+
     free(a);
 
     return 0;
@@ -526,7 +529,6 @@ int mirGammaBounds(int ndim, int nv, double* xv, int ng, double* xg,
     return 0;
 }
 
-
 int mirBetaGamma(int nfunc, int ndim,
                  int nv, double* xv, double* fv, double* sigv,
                  int ng, double* xg, double* fg, double* sigg,
@@ -535,6 +537,9 @@ int mirBetaGamma(int nfunc, int ndim,
     int i, j, n, ierr;
     double fvMean, dfv, gammaMin, gammaMax, resRatio, sigma, resid, resSqr;
     double *xvp, *fvp, *sigvp, *fx;
+
+    printf("Parameters for MIR BETA GAMMA: nfunc: %d, ndim: %d\n, nv: %d, xv: %f, fv: %f, sigv: %f\n, N: %d, P: %d, safety: %f",
+            nfunc, ndim, nv, *xv, *fv, *sigv, N, P, safety);
 
     /* Calculate default beta */
     *beta = 0.0;
@@ -547,9 +552,14 @@ int mirBetaGamma(int nfunc, int ndim,
         for (i = 0; i < nv; ++i) {
             dfv = fv[n * nv + i] - fvMean;
             *beta += dfv * dfv;
+            printf("Updated beta to: %f\n",
+                       *beta);
         }
     }
     *beta = sqrt(*beta / (nv - 1) / nfunc);
+
+    printf("FINALLY Updated beta to: %f\n\n",
+                       *beta);
 
     /* Calculate bounds for default gamma */
     ierr = mirGammaBounds(ndim, nv, xv, ng, xg, &gammaMin, &gammaMax);
@@ -609,4 +619,3 @@ int mirBetaGamma(int nfunc, int ndim,
 
     return 0;
 }
-

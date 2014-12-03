@@ -39,9 +39,14 @@ void cmp(const IplImage *mask, const IplImage *segmented_imag, int& tp, int& fp,
 	}
 }
 
+
+
 int main(int argc, char **argv)
 {
 	try {
+
+		vector<double> RECALL, PRECISION, F1;
+
 		cvNamedWindow("mainWin", CV_WINDOW_AUTOSIZE); 
 		cvMoveWindow("mainWin", EYE_WIDTH, EYE_HEIGHT);
 
@@ -99,13 +104,11 @@ int main(int argc, char **argv)
 			cvCvtColor(input, input_gray, CV_RGB2GRAY);
 			cvSmooth(input_gray, input_gray, CV_MEDIAN, 9);
 
-			cvShowImage("mainWin", input_gray);
-			cvWaitKey(0);
+			//cvShowImage("mainWin", input_gray);
+			//cvWaitKey(0);
 
 			segmentation.processToExtractFeatures(input_gray, input, histograma_hor, histograma_ver, vector_hor, vector_ver);
 
-			cvShowImage("mainWin", input);
-			cvWaitKey(0);
 
 			int tp = 0, fp=0, fn=0,tn=0;
 			cmp(mask, input, tp, fp, fn, tn);
@@ -113,7 +116,15 @@ int main(int argc, char **argv)
 			double recall = (tp+fn == 0) ? 0 : ((double)tp) / (double)(tp+fn);
             double f1 = ( precision + recall ==0) ? 0 : (2*recall*precision/(recall+precision));
 
+            RECALL.push_back(recall*100);
+            PRECISION.push_back(precision*100);
+            F1.push_back(f1*100);
+
+
 			cout << "Image recall = " << 100*recall << "%, precision = " << 100*precision << "%, f_1 measure=" << 100*f1 << "%" << endl << endl;
+
+			//cvShowImage("mainWin", input);
+			//cvWaitKey(0);
 
             aprecision += precision; 
 			arecall += recall;
@@ -127,7 +138,9 @@ int main(int argc, char **argv)
 			// Release the used images
 			cvReleaseImage(&mask_image_file);
 			cvReleaseImage(&dataset_image_file);
+
 		}
+
 
 		if(counter > 0) {
 	        aprecision /= counter; 
@@ -135,6 +148,24 @@ int main(int argc, char **argv)
 	        afmeasure /= counter; 
 		
 			cout << "Average recall = " << 100*arecall << " % precision = " << 100*aprecision << " % f_1 measure=" << 100*afmeasure << " %" << endl;
+
+			string file = getUniqueFileName("../dataset/Output_Test", "tester");
+
+
+			FILE *pf; 
+			pf = fopen(file.c_str(), "w");
+
+			fprintf(pf,"recall, precision, f_1 measure\n\n");
+
+			for(int j = 0; j < RECALL.size(); j++) {
+				fprintf(pf,"%f %f %f\n", RECALL[j], PRECISION[j], F1[j]);
+			}
+
+			fprintf(pf,"\nAverage\n\n");
+			fprintf(pf,"%f %f %f\n", 100*arecall, 100*aprecision, 100*afmeasure);
+			fclose(pf);
+			
+
 		}
 
 		cvReleaseImage(&mask_orig);

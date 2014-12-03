@@ -1,6 +1,7 @@
 #pragma once
 #include "utils.h"
 #include "GaussianProcess.cpp"
+#define SIZESAMPLE 192
 
 typedef MeanAdjustedGaussianProcess<SharedImage> ImProcess;
 typedef MeanAdjustedGaussianProcess<vector<int> > HistProcess;	// TODO ARCADI CONTINUE
@@ -49,6 +50,35 @@ struct TrackerOutput {
 	void setFrameId(int id);
 };
 
+
+
+class CalculateRegression {
+
+
+
+public:
+
+    double XV[15][SIZESAMPLE];
+    double fv[15];	// TODO PUT THE SECOND DIMENSION
+    double beta, gamma, sigv[15];
+    int inputIndex, inputIndex2;
+
+    double XV2[15][4];
+    double accumulate_horizontal;
+    double accumulate_vertical;
+
+    CalculateRegression();
+    void CalculateMedian(Point point, vector<int> sample_horizontal, vector<int> sample_vertical);
+    void CalculateStandardDeviation(vector<int> sample_horizontal, vector<int> sample_vertical);
+    double CalculateMedianSingleInput(vector<int> sample);
+    double CalculateStandardDeviationSingleInput(vector<int> sample, double medianIndex);
+    void AddSample(Point point, vector<int> sample_horizontal, vector<int> sample_vertical);
+    void CalculateRegressionTranning();
+	double* CalculateOutput(vector<int> sample_horizontal, vector<int> sample_vertical);
+};
+
+
+
 class GazeTracker {
     scoped_ptr<ImProcess> gpx, gpy;
     scoped_ptr<HistProcess> histx, histy;
@@ -84,6 +114,8 @@ class GazeTracker {
 public:
     TrackerOutput output;
 	ostream* output_file;
+
+    CalculateRegression regression;
 
     GazeTracker(): targets(new Targets), 
 	output(Point(0,0), Point(0,0), -1), nn_eye(cvCreateImage(cvSize(16, 8), 8, 1)),
