@@ -2,7 +2,7 @@
 #include "EyeExtractor.h"
 #include "ExtractEyeFeaturesSegmentation.h"
 
-bool saveImage = false;
+bool saveImage = true;
 const int EyeExtractor::eyedx = 32*2;
 const int EyeExtractor::eyedy = 16*2;
 const CvSize EyeExtractor::eyesize = cvSize(eyedx*2, eyedy*2);
@@ -12,7 +12,7 @@ void EyeExtractor::processEye(void) {
     normalizeGrayScaleImage(eyegrey.get(), 127, 50);
     cvConvertScale(eyegrey.get(), eyefloat2.get());
     // todo: equalize it somehow first!
-    cvSmooth(eyefloat2.get(), eyefloat.get(), CV_GAUSSIAN, 3);
+    // TODO ONUR REMOVED cvSmooth(eyefloat2.get(), eyefloat.get(), CV_GAUSSIAN, 3);
     //TODO INCLUDE cvEqualizeHist(eyegrey.get(), eyegrey.get());
 
 
@@ -20,22 +20,24 @@ void EyeExtractor::processEye(void) {
     normalizeGrayScaleImage(eyegrey_left.get(), 127, 50);
     cvConvertScale(eyegrey_left.get(), eyefloat2_left.get());
     // todo: equalize it somehow first!
-    cvSmooth(eyefloat2_left.get(), eyefloat_left.get(), CV_GAUSSIAN, 3);
+    // TODO ONUR REMOVED cvSmooth(eyefloat2_left.get(), eyefloat_left.get(), CV_GAUSSIAN, 3);
     //TODO INCLUDE cvEqualizeHist(eyegrey_left.get(), eyegrey_left.get());
     
 	// Blink detection trials
-	scoped_ptr<IplImage> temp(cvCreateImage(eyesize, IPL_DEPTH_32F, 1));
-	scoped_ptr<IplImage> temp2(cvCreateImage(eyesize, IPL_DEPTH_32F, 1));
-	cvConvertScale(eyegrey.get(), temp.get());
+	//scoped_ptr<IplImage> temp(cvCreateImage(eyesize, IPL_DEPTH_32F, 1));
+	//scoped_ptr<IplImage> temp2(cvCreateImage(eyesize, IPL_DEPTH_32F, 1));
+	//cvConvertScale(eyegrey.get(), temp.get());
 	blinkdet.update(eyefloat);
 
-    extractFeatures.processToExtractFeatures(   eyegrey.get(), eyeimage.get(), histogram_horizontal, 
+    eyeGraySegmented = extractFeatures.processToExtractFeatures(   eyegrey.get(), eyeimage.get(), histogram_horizontal, 
                                                 histogram_vertical, vector_horizontal.get(), vector_vertical.get());
 
-	cvConvertScale(eyegrey_left.get(), temp2.get());
+    
+
+	//cvConvertScale(eyegrey_left.get(), temp2.get());
 	blinkdet_left.update(eyefloat_left);
 	
-    extractFeatures.processToExtractFeatures(   eyegrey_left.get(), eyeimage_left.get(), histogram_horizontal_left, 
+    eyeGraySegmented_left = extractFeatures.processToExtractFeatures(   eyegrey_left.get(), eyeimage_left.get(), histogram_horizontal_left, 
                                                 histogram_vertical_left, vector_horizontal_left.get(), vector_vertical_left.get());
 
 	if(blinkdet.getState() >= 2 && blinkdet_left.getState() >= 2) {
@@ -63,6 +65,7 @@ EyeExtractor::EyeExtractor(const PointTracker &tracker):
     histogram_vertical(cvCreateImage( cvSize(eyesize.height, eyesize.width), 8, 3 )),
     vector_horizontal(new vector<int> (eyesize.width,0)),
     vector_vertical(new vector<int> (eyesize.height,0)),
+    eyeGraySegmented(cvCreateImage( eyesize, IPL_DEPTH_32F, 1 )),
  	// ONUR DUPLICATED CODE FOR LEFT EYE
     eyefloat2_left(cvCreateImage( eyesize, IPL_DEPTH_32F, 1 )),
     eyegrey_left(cvCreateImage( eyesize, 8, 1 )),
@@ -72,6 +75,7 @@ EyeExtractor::EyeExtractor(const PointTracker &tracker):
     histogram_vertical_left(cvCreateImage( cvSize(eyesize.height, eyesize.width), 8, 3 )),
     vector_horizontal_left(new vector<int> (eyesize.width,0)),
     vector_vertical_left(new vector<int> (eyesize.height,0)),
+    eyeGraySegmented_left(cvCreateImage( eyesize, IPL_DEPTH_32F, 1 )),
 	blink(false),
 
     extractFeatures(eyesize)
@@ -83,7 +87,7 @@ void EyeExtractor::extractEye(const IplImage *origimage)
 {
     static int frame_no = 1;
     string file;
-    char buffer [50];
+    char buffer [100];
 
     //if (!tracker.status[tracker.eyepoint1])
 	//throw TrackingException();
@@ -121,10 +125,11 @@ void EyeExtractor::extractEye(const IplImage *origimage)
     cvGetQuadrangleSubPix( origimage, eyeimage.get(), &M);
     cvCvtColor(eyeimage.get(), eyegrey.get(), CV_RGB2GRAY);
 
+/*
 // ------------------ Arcadi -------------------
 
-    if (saveImage == true){
-
+    //if (saveImage == true){
+        cout << "SAVING IMAGES" << endl;
 	    file=sprintf (buffer, "../Images/Colour/Eye_Image_%d.jpg", frame_no);
 
 	    cvSaveImage(buffer, eyeimage.get());
@@ -133,11 +138,11 @@ void EyeExtractor::extractEye(const IplImage *origimage)
 
 	    cvSaveImage(buffer, eyegrey.get());
 
-	    frame_no++;
-	}
+        frame_no++;
+	//}
 
 // ---------------------------------------------
-
+*/
 	extractLeftEye(origimage, x0, y0, x1, y1);
 	
     processEye();

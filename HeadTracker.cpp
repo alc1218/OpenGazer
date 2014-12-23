@@ -87,6 +87,7 @@ vector<bool> HeadTracker::detectinliers(vector<Point> const &prev,
 	    inliers[i] = (squarenorm(transitions[i] - transitions[maxindex]) 
 		                    <= square(radius));
 
+/*
     for(int i=0; i<inliers.size(); i++)
 	if (!inliers[i]) {
 		tracker.status[i] = false;
@@ -101,7 +102,7 @@ vector<bool> HeadTracker::detectinliers(vector<Point> const &prev,
 		+ 0.7 * tracker.currentpoints[i].y;
 			//tracker.origpoints[i].y + transitions[maxindex].y;
 	}
-
+*/
     return inliers;
 }
 
@@ -265,7 +266,8 @@ void HeadTracker::updatetracker(void) {
 void HeadTracker::draw(IplImage *image) {
 //     cout << "state: "<< rotx << " " << roty << " " 
 // 	 << atx << " " << aty << endl;
-	
+	return;	// TODO UNCOMMENT LATER ON
+
     cvLine(image, 
 	   cvPoint(320, 240),
 	   cvPoint(320 + int(atx * 50), 240 + int(aty * 50)),

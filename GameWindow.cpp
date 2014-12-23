@@ -6,6 +6,13 @@
 #include <stdlib.h>
 #include <opencv2/opencv.hpp>
 
+#include <math.h>
+
+#define picturesX 3
+#define picturesY 3
+
+//#include "opencv2/imgproc/imgproc_c.h"
+
 CvScalar background_color2;
 
 bool button_events() {
@@ -50,6 +57,10 @@ GameArea::GameArea(TrackerOutput* op)
 	
 	background = (IplImage*) cvCreateImage(cvSize(rect.get_width(), rect.get_height()), 8, 3 );
 	current = (IplImage*) cvCreateImage(cvSize(background->width, background->height), 8, 3 );
+	interface = (IplImage*) cvCreateImage(cvSize(rect.get_width(), rect.get_height()), 8, 3 );
+	canvas_resized = (IplImage*) cvCreateImage(cvSize(interface->width/2, interface->height/2), 8, 3 );
+	picture_resized = (IplImage*) cvCreateImage(cvSize((interface->width/2)/picturesX, interface->height/picturesY), 8, 3 );
+	text_resized = (IplImage*) cvCreateImage(cvSize(interface->width/2, interface->height/2), 8, 3 );
 	//black = (IplImage*) cvCreateImage(cvSize(background->width, background->height), 8, 3 );
     clearing_image = (IplImage*) cvCreateImage(cvSize(2000, 1500), 8, 3 );
 	
@@ -58,13 +69,13 @@ GameArea::GameArea(TrackerOutput* op)
 	cvSetZero(background);
 	//cvSetZero(black);
 	background_color = CV_RGB(153, 75, 75);
-	background_color2 = CV_RGB(255, 255, 255);
+	background_color2 = CV_RGB(153, 75, 75);
 	//cvSet(background, background_color);
     //cvSet(black, background_color2);
 
     // Clearing image is filled with white
 	//cvSet(clearing_image, background_color2);
-    cvSet(clearing_image, CV_RGB(255, 255, 255));
+    cvSet(clearing_image, CV_RGB(153, 75, 75));
 	
 	
 	
@@ -208,162 +219,288 @@ void GameArea::showContents() {
 #else
 		else if(tracker_status == STATUS_CALIBRATED) {
 #endif
-		
-			//Gtk::Allocation allocation = get_allocation();
-			const int width = background->width;
-			const int height = background->height;
 
-			Glib::RefPtr<Gdk::GC> gc = Gdk::GC::create(window);
-			
-			double alpha = 0.6;
-			estimation_x_right = (1-alpha)*output->gazepoint.x + alpha*estimation_x_right;
-			estimation_y_right = (1-alpha)*output->gazepoint.y + alpha*estimation_y_right;
-			estimation_x_left = (1-alpha)*output->gazepoint_left.x + alpha*estimation_x_left;
-			estimation_y_left = (1-alpha)*output->gazepoint_left.y + alpha*estimation_y_left;
-			
-			int estimation_x = (estimation_x_right + estimation_x_left) / 2;
-			int estimation_y = (estimation_y_right + estimation_y_left) / 2;
-			
-			//int estimation_x = output->gazepoint.x;
-			//int estimation_y = output->gazepoint.y;
-			//cout << "INIT EST: " << estimation_x << ", " << estimation_y << endl;
-			
-			// Map estimation to window coordinates
-			int window_x, window_y;
-			
-			//window->get_geometry(window_x, window_y, dummy, dummy, dummy); 
-			//GtkWidget *top_window;
-			//gint x,y;
-			//top_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-			
-			//gdk_window_get_position(top_window->window, &x, &y);
-			//cout << "WINDOW POSITION: " << x<< ", " << y << endl;
-			//estimation_x -= window_x;
-			//estimation_y -= window_y;
-			
-			//// REMOVE
-			//estimation_x = 800;
-			//estimation_y = 500;
-			
-			//cout << "EST: " << estimation_x << ", " << estimation_y << endl;
-			//cout << "separately: (" << output->gazepoint.x << ", " << output->gazepoint.y << ") and (" << output->gazepoint_left.x << ", " << output->gazepoint_left.y << ")" << endl;
-			//cout << "  --errors: (" << output->nn_gazepoint.x << ", " << output->nn_gazepoint.y << ") and (" << output->nn_gazepoint_left.x << ", " << output->nn_gazepoint_left.y << ")" << endl;
-			
-			//cvSet(black, background_color2);
-	
-			cvResetImageROI(background);
-			cvResetImageROI(current);
-			cvResetImageROI(gaussian_mask);
-			
-			CvRect bounds = cvRect(estimation_x - 100, estimation_y - 100, 200, 200);
-			CvRect gaussian_bounds = cvRect(0, 0, 200, 200);
-			
-			if(bounds.x < 0) {
-				bounds.width += bounds.x;		// Remove the amount from the width
-				gaussian_bounds.x -= bounds.x;
-				gaussian_bounds.width += bounds.x;
-				bounds.x = 0;
-			}
-			if(bounds.y < 0) {
-				bounds.height += bounds.y;		// Remove the amount from the height
-				gaussian_bounds.y -= bounds.y;
-				gaussian_bounds.height += bounds.y;
-				bounds.y = 0;
-			}
-			if(bounds.width + bounds.x > background->width) {
-				bounds.width = background->width - bounds.x; 
-			}
-			if(bounds.height + bounds.y > background->height) {
-				bounds.height = background->height - bounds.y; 
-			}	
-			gaussian_bounds.width = bounds.width;
-			gaussian_bounds.height = bounds.height;
-			
-			if(estimation_x <= 0) {
-				estimation_x = 1;
-				//cout << "IMPOSSIBLE CHANGE 1" << endl;
-			}
-			if(estimation_y <= 0) {
-				estimation_y = 1;
-				//cout << "IMPOSSIBLE CHANGE 2" << endl;
-			}
-			if(estimation_x >= background->width) {
-				estimation_x = background->width -1;
-				//cout << "IMPOSSIBLE CHANGE 3" << endl;
-			}
-			if(estimation_y >= background->height) {
-				estimation_y = background->height -1;
-				//cout << "IMPOSSIBLE CHANGE 4" << endl;
-			}
-			
-			//cout << "4" << endl;
-			//cvCopy(black, current);
-            cvSet(current, background_color2);
-			//cout << "44" << endl;
-			
-			//cout << "Bounds: " << bounds.x << ", " << bounds.y << "," << bounds.width << ", " << bounds.height << endl;
-			//cout << "Gaussian Bounds: " << gaussian_bounds.x << ", " << gaussian_bounds.y << "," << gaussian_bounds.width << ", " << gaussian_bounds.height << endl;
-			
-			if(bounds.width > 0 && bounds.height > 0) {
-				if(estimation_x != 0 || estimation_y != 0) {
-					cvSetImageROI(background, bounds);
-					cvSetImageROI(current, bounds);
-					cvSetImageROI(gaussian_mask, gaussian_bounds);
-					//cout << "5" << endl;
-					cvCopy(background, current, gaussian_mask);
-					//cout << "6" << endl;
+				//Gtk::Allocation allocation = get_allocation();
+				const int width = background->width;
+				const int height = background->height;
+
+				Glib::RefPtr<Gdk::GC> gc = Gdk::GC::create(window);
+				
+				double alpha = 0.6;
+				estimation_x_right = (1-alpha)*output->gazepoint.x + alpha*estimation_x_right;
+				estimation_y_right = (1-alpha)*output->gazepoint.y + alpha*estimation_y_right;
+				estimation_x_left = (1-alpha)*output->gazepoint_left.x + alpha*estimation_x_left;
+				estimation_y_left = (1-alpha)*output->gazepoint_left.y + alpha*estimation_y_left;
+				
+				int estimation_x = (estimation_x_right + estimation_x_left) / 2;
+				int estimation_y = (estimation_y_right + estimation_y_left) / 2;
+				
+				//int estimation_x = output->gazepoint.x;
+				//int estimation_y = output->gazepoint.y;
+				//cout << "INIT EST: " << estimation_x << ", " << estimation_y << endl;
+				
+				// Map estimation to window coordinates
+				int window_x, window_y;
+				
+				//window->get_geometry(window_x, window_y, dummy, dummy, dummy); 
+				//GtkWidget *top_window;
+				//gint x,y;
+				//top_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+				
+				//gdk_window_get_position(top_window->window, &x, &y);
+				//cout << "WINDOW POSITION: " << x<< ", " << y << endl;
+				//estimation_x -= window_x;
+				//estimation_y -= window_y;
+				
+				//// REMOVE
+				//estimation_x = 800;
+				//estimation_y = 500;
+				
+				//cout << "EST: " << estimation_x << ", " << estimation_y << endl;
+				//cout << "separately: (" << output->gazepoint.x << ", " << output->gazepoint.y << ") and (" << output->gazepoint_left.x << ", " << output->gazepoint_left.y << ")" << endl;
+				//cout << "  --errors: (" << output->nn_gazepoint.x << ", " << output->nn_gazepoint.y << ") and (" << output->nn_gazepoint_left.x << ", " << output->nn_gazepoint_left.y << ")" << endl;
+				
+				//cvSet(black, background_color2);
+
+				cvResetImageROI(background);
+				cvResetImageROI(current);
+				cvResetImageROI(gaussian_mask);
+				
+			int value_test = 2;
+
+			if (value_test == 1) {
+
+				CvRect bounds = cvRect(estimation_x - 100, estimation_y - 100, 200, 200);
+				CvRect gaussian_bounds = cvRect(0, 0, 200, 200);
+				
+				if(bounds.x < 0) {
+					bounds.width += bounds.x;		// Remove the amount from the width
+					gaussian_bounds.x -= bounds.x;
+					gaussian_bounds.width += bounds.x;
+					bounds.x = 0;
 				}
-			}
-			
-			cvResetImageROI(background);
-			cvResetImageROI(current);
-			cvResetImageROI(gaussian_mask);
+				if(bounds.y < 0) {
+					bounds.height += bounds.y;		// Remove the amount from the height
+					gaussian_bounds.y -= bounds.y;
+					gaussian_bounds.height += bounds.y;
+					bounds.y = 0;
+				}
+				if(bounds.width + bounds.x > background->width) {
+					bounds.width = background->width - bounds.x; 
+				}
+				if(bounds.height + bounds.y > background->height) {
+					bounds.height = background->height - bounds.y; 
+				}	
+				gaussian_bounds.width = bounds.width;
+				gaussian_bounds.height = bounds.height;
+				
+				if(estimation_x <= 0) {
+					estimation_x = 1;
+					//cout << "IMPOSSIBLE CHANGE 1" << endl;
+				}
+				if(estimation_y <= 0) {
+					estimation_y = 1;
+					//cout << "IMPOSSIBLE CHANGE 2" << endl;
+				}
+				if(estimation_x >= background->width) {
+					estimation_x = background->width -1;
+					//cout << "IMPOSSIBLE CHANGE 3" << endl;
+				}
+				if(estimation_y >= background->height) {
+					estimation_y = background->height -1;
+					//cout << "IMPOSSIBLE CHANGE 4" << endl;
+				}
+				
+				//cout << "4" << endl;
+				//cvCopy(black, current);
+	            cvSet(current, background_color2);
+				//cout << "44" << endl;
+				
+				//cout << "Bounds: " << bounds.x << ", " << bounds.y << "," << bounds.width << ", " << bounds.height << endl;
+				//cout << "Gaussian Bounds: " << gaussian_bounds.x << ", " << gaussian_bounds.y << "," << gaussian_bounds.width << ", " << gaussian_bounds.height << endl;
+				
+				if(bounds.width > 0 && bounds.height > 0) {
+					if(estimation_x != 0 || estimation_y != 0) {
+						cvSetImageROI(background, bounds);
+						cvSetImageROI(current, bounds);
+						cvSetImageROI(gaussian_mask, gaussian_bounds);
+						//cout << "5" << endl;
+						cvCopy(background, current, gaussian_mask);
+						//cout << "6" << endl;
+					}
+				}
+				
+				cvResetImageROI(background);
+				cvResetImageROI(current);
+				cvResetImageROI(gaussian_mask);
 
-            clearLastUpdatedRegion();
-			
-            // Draw only the region which is to be updated
-		    Glib::RefPtr<Gdk::Pixbuf> pixbuf =
-		    Gdk::Pixbuf::create_from_data((guint8*) current->imageData,
-						    Gdk::COLORSPACE_RGB,
-						    false,
-						    current->depth,
-						    current->width,
-						    current->height,
-						    current->widthStep);
-		    window->draw_pixbuf(gc, pixbuf, bounds.x, bounds.y, bounds.x, bounds.y, bounds.width, bounds.height,
-				    Gdk::RGB_DITHER_NONE, 0, 0);
+	            clearLastUpdatedRegion();
+				
+	            // Draw only the region which is to be updated
+			    Glib::RefPtr<Gdk::Pixbuf> pixbuf =
+			    Gdk::Pixbuf::create_from_data((guint8*) current->imageData,
+							    Gdk::COLORSPACE_RGB,
+							    false,
+							    current->depth,
+							    current->width,
+							    current->height,
+							    current->widthStep);
+			    window->draw_pixbuf(gc, pixbuf, bounds.x, bounds.y, bounds.x, bounds.y, bounds.width, bounds.height,
+					    Gdk::RGB_DITHER_NONE, 0, 0);
 
-            last_updated_region->x = bounds.x;
-            last_updated_region->y = bounds.y;
-            last_updated_region->width = bounds.width;
-            last_updated_region->height = bounds.height;
-			
-			int diff = ((estimation_x - frog_x) * (estimation_x - frog_x)) + ((estimation_y - frog_y) * (estimation_y - frog_y));
+	            last_updated_region->x = bounds.x;
+	            last_updated_region->y = bounds.y;
+	            last_updated_region->width = bounds.width;
+	            last_updated_region->height = bounds.height;
+				
+				int diff = ((estimation_x - frog_x) * (estimation_x - frog_x)) + ((estimation_y - frog_y) * (estimation_y - frog_y));
+						
+						
+				// If less than 150 pix, count
+				if(diff < 35000) {
+					//cout << "Difference is fine!" << endl;
+					timeval time;
+					gettimeofday(&time, NULL);
+					temp_time = (time.tv_sec * 1000) + (time.tv_usec / 1000);
 					
 					
-			// If less than 150 pix, count
-			if(diff < 35000) {
-				//cout << "Difference is fine!" << endl;
-				timeval time;
-				gettimeofday(&time, NULL);
-				temp_time = (time.tv_sec * 1000) + (time.tv_usec / 1000);
-				
-				
-				if(start_time == future_time) {
-					start_time = temp_time;
+					if(start_time == future_time) {
+						start_time = temp_time;
+					}
+					// If fixes on the same point for 3 seconds
+					else if(temp_time - start_time > 1500) {
+						frog_counter++;
+						calculateNewFrogPosition();
+						start_time = future_time;
+					}
+					
 				}
-				// If fixes on the same point for 3 seconds
-				else if(temp_time - start_time > 1500) {
-					frog_counter++;
-					calculateNewFrogPosition();
+				// If cannot focus for a while, reset
+				else {
 					start_time = future_time;
 				}
+			} else if (value_test == 2) {
+
+				// PICTURE TO INTERFACE
+
+				boost::filesystem::directory_iterator end_itr;
 				
+				boost::filesystem::path pictures_path("../Images_Google/Pictures");
+				boost::filesystem::directory_iterator picture_image(pictures_path);
+
+				for (int i = 0; i < picturesX; i++) {
+
+					for (int j = 0; j < picturesY; j++) {
+
+						cvSetImageROI(interface, cvRect((interface->width/2)/picturesX * i, interface->height/picturesY * j, (interface->width/2)/picturesX, interface->height/picturesY));
+
+						if(picture_image->path().filename().string().compare(".DS_Store") == 0 || picture_image->path().filename().string().compare(".") == 0 || picture_image->path().filename().string().compare("..") == 0) {
+							
+							++picture_image;
+							j--;
+							continue;
+						} else if(picture_image != end_itr) {
+						
+							IplImage* picture = (IplImage*) cvLoadImage(picture_image->path().string().c_str());
+
+							cvResize(picture, picture_resized);
+
+						    cvCopy(picture_resized, interface);
+
+							++picture_image;
+						}
+
+
+						cvResetImageROI(interface);
+					}
+				}
+
+
+				// INFORMATION TEXT OF PICTURES TO INTERFACE
+				
+				boost::filesystem::path text_path("../Images_Google/Text");
+				boost::filesystem::directory_iterator text_image(text_path);
+
+				int index_x = estimation_x / ((interface->width / 2) / picturesX);
+				int index_y = estimation_y / (interface->height / picturesY);
+				int view_image = (index_x * picturesX) + index_y;
+
+				if ((view_image) < (picturesX * picturesY)) {
+
+					cvSetImageROI(interface, cvRect(interface->width/2, 0, interface->width/2, interface->height/2));
+					
+					int image_file_index = 0;
+
+					while(true) {
+					//for (int i = 0; i < view_image; i++) {
+						if (text_image->path().filename().string().compare(".DS_Store") == 0 || text_image->path().filename().string().compare(".") == 0 || text_image->path().filename().string().compare("..") == 0) {
+							;
+						}
+						else {
+							if(image_file_index == view_image)
+								break;
+
+							image_file_index++;
+						}
+
+						text_image++;
+					}
+					
+					IplImage* text = (IplImage*) cvLoadImage(text_image->path().string().c_str());
+
+					cvResize(text, text_resized);
+
+				    cvCopy(text_resized, interface);
+
+					cvResetImageROI(interface);
+
+				}
+
+				// PICTURE FRAMEWORK TO INTERFACE
+
+				cvSetImageROI(interface, cvRect(index_x * (interface->width/2)/picturesX, index_y * interface->height/picturesY, (interface->width/2)/picturesX, interface->height/picturesY));
+
+				cvRectangle(interface, cvPoint(0 ,0), cvPoint((interface->width/2)/picturesX, interface->height/picturesY), cvScalar(255,255, 0), 10, 8, 0);
+
+				cvResetImageROI(interface);
+
+
+				// FACE TO INTERFACE
+
+			    cvSetImageROI(interface, cvRect(interface->width/2, interface->height/2, interface->width/2, interface->height/2));
+
+				cvResize(canvas, canvas_resized);
+
+			    cvCopy(canvas_resized, interface);
+
+				cvResetImageROI(interface);
+
+
+				// GAZE ESTIMATION
+				if ((view_image) < (picturesX * picturesY)) {
+					Point estimation(0, 0);
+					mapToVideoCoordinates(Point(1280-estimation_x, estimation_y), interface->height, estimation);
+					cvCircle((CvArr*) interface, cvPoint(estimation.x, estimation.y), 8, cvScalar(0, 255, 0), -1, 8, 0);
+				}
+
+				cvResize(interface, repositioningImage);
+				//repositioningImage = interface;
+
+			    Glib::RefPtr<Gdk::Pixbuf> pixbuf =
+			    Gdk::Pixbuf::create_from_data((guint8*) interface->imageData,
+							    Gdk::COLORSPACE_RGB,
+							    false,
+							    interface->depth,
+							    interface->width,
+							    interface->height,
+							    interface->widthStep);
+			    window->draw_pixbuf(gc, pixbuf, 0, 0, 0, 0, interface->width, interface->height,
+					    Gdk::RGB_DITHER_NONE, 0, 0);
+
 			}
-			// If cannot focus for a while, reset
-			else {
-				start_time = future_time;
-			}
+
+
+
 		}
         else if(!is_window_initialized) {
 			Glib::RefPtr<Gdk::GC> gc = Gdk::GC::create(window);

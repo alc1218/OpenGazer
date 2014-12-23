@@ -87,6 +87,9 @@ vector<S> getsubvector(vector<T> const& input, S T::*ptr) {
 // TODO ARCADI CONTINUE
 // Create copy of these two functions, and modify so that they use histograms
 double GazeTracker::imagedistance(const IplImage *im1, const IplImage *im2) {
+	//cout << "im1 size: " << im1->width << ", " << im1->height << ", " << im1->depth << ", " << im1->nChannels << endl;
+	//cout << "im2 size: " << im2->width << ", " << im2->height << ", " << im2->depth << ", " << im2->nChannels << endl;
+
     double norm = cvNorm(im1, im2, CV_L2);
     return norm*norm;
 }
@@ -94,8 +97,8 @@ double GazeTracker::imagedistance(const IplImage *im1, const IplImage *im2) {
 double GazeTracker::covariancefunction(SharedImage const& im1, 
 				       SharedImage const& im2)
 {
-    const double sigma = 1.0;
-    const double lscale = 500.0;
+    const double sigma = 100.0;
+    const double lscale = 4000.0;
     return sigma*sigma*exp(-imagedistance(im1.get(),im2.get())/(2*lscale*lscale));
 }
 
@@ -103,13 +106,13 @@ double GazeTracker::covariancefunction(SharedImage const& im1,
 // Create copy of these two functions, and modify so that they use histograms
 double GazeTracker::histDistance(vector<int> histogram1, vector<int> histogram2) {
  
-    const double sigma = 1.0; // 1.0;
+    const double sigma = 50.0; // 1.0;
     const double lscale = 100.0; // 500.00;
 
 	double norm = 0.0;
 
     for (int i = 0; i < histogram1.size(); i++) {
-    	norm +=  pow(histogram1[i] - histogram2[i], 2); // suma de las diferencias cuadradas
+    	norm +=  abs(histogram1[i] - histogram2[i]); // suma de las diferencias cuadradas
     }  
 
     norm = sigma*sigma*exp(-norm / (2*lscale*lscale) );
@@ -596,11 +599,13 @@ void GazeTracker::load(CvFileStorage *in, CvFileNode *node) {
 void GazeTracker::update(const IplImage *image, const IplImage *eyegrey, vector<int> vector_horizontal,
 			      vector<int> vector_vertical) {
     if (isActive()) {
-		//output.gazepoint = Point(gpx->getmean(SharedImage(image, &ignore)), 
-		//			 gpy->getmean(SharedImage(image, &ignore)));
+    	// TODO ARCADI 23/12
 
-		output.gazepoint = Point(histx->getmean(vector_horizontal), 
-					 histy->getmean(vector_vertical));
+		output.gazepoint = Point(gpx->getmean(SharedImage(image, &ignore)), 
+					 gpy->getmean(SharedImage(image, &ignore)));
+
+		//output.gazepoint = Point(histx->getmean(vector_horizontal), 
+		//			 histy->getmean(vector_vertical));
 
 /*
     	vector<int> vector_horizontal_and_vertical;
@@ -639,11 +644,13 @@ void GazeTracker::update(const IplImage *image, const IplImage *eyegrey, vector<
 void GazeTracker::update_left(const IplImage *image, const IplImage *eyegrey, vector<int> vector_horizontal_left,
 			      vector<int> vector_vertical_left) {
     if (isActive()) {
-		//output.gazepoint_left = Point(gpx_left->getmean(SharedImage(image, &ignore)), 
-		//			 gpy_left->getmean(SharedImage(image, &ignore)));
+    	// TODO ARCADI 23/12
 
-		output.gazepoint_left = Point(histx_left->getmean(vector_horizontal_left), 
-					 histy_left->getmean(vector_vertical_left));
+		output.gazepoint_left = Point(gpx_left->getmean(SharedImage(image, &ignore)), 
+					 gpy_left->getmean(SharedImage(image, &ignore)));
+
+		//output.gazepoint_left = Point(histx_left->getmean(vector_horizontal_left), 
+		//			 histy_left->getmean(vector_vertical_left));
 
 /*
     	vector<int> vector_horizontal_and_vertical_left;

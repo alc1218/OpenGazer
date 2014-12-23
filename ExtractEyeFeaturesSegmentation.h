@@ -4,6 +4,7 @@
 class ExtractEyeFeaturesSegmentation {
 
 	int sizeImageDisk;
+    IplImage* elipse_gray;
     IplImage* irisTemplateDisk[10];
     IplImage* irisTemplate;
     IplImage* Gaussian2D[10];
@@ -13,7 +14,8 @@ class ExtractEyeFeaturesSegmentation {
 
 public:
     ExtractEyeFeaturesSegmentation(CvSize);
-    void processToExtractFeatures(IplImage*, IplImage*, IplImage*, IplImage*, std::vector<int>*, std::vector<int>*);
+    IplImage* processToExtractFeatures(IplImage*, IplImage*, IplImage*, IplImage*, std::vector<int>*, std::vector<int>*);
+    IplImage* processToExtractFeaturesWITHOUTVECTORS(IplImage*, IplImage*);
     IplImage* constructTemplateDisk(int);
     IplImage* Segmentation(IplImage*);
     IplImage* CreateTemplateGausian2D(IplImage*);

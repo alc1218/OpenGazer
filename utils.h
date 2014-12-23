@@ -16,7 +16,7 @@
 #include <boost/lexical_cast.hpp>
 #include <fann.h>
 
-#define EXPERIMENT_MODE
+//#define EXPERIMENT_MODE
 //#define DEBUG
 
 

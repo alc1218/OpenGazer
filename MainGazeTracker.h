@@ -7,14 +7,17 @@
 #include <gtkmm.h>
 #include "fann.h"
 #include "GameWindow.h"
+#include "EyeTemplate.h"
 
 #include <sys/time.h>
 
 bool detect_nose(IplImage* img, double resolution, CvRect nose_rect, Point points[], CvHaarClassifierCascade* cascade_nose);
 bool detect_mouth(IplImage* img, double resolution, CvRect nose_rect, Point points[], CvHaarClassifierCascade* cascade_mouth);
+void detect_eye_template(IplImage* img, double resolution, Point points[], CvHaarClassifierCascade* cascade_eye, EyeTemplate extractFeatures);
 void detect_eye_corners(IplImage* img, double resolution, Point points[], CvHaarClassifierCascade* cascade_eye);
 void detect_eyebrow_corners(IplImage* img, double resolution, CvRect eyebrow_rect, Point points[]);
 void check_rect_size(IplImage* image, CvRect* rect);
+
 CvPoint2D32f* detect_corners_in_grayscale(IplImage* eye_region_image_gray, int& corner_count);
 
 struct CommandLineArguments {
@@ -100,10 +103,11 @@ class MainGazeTracker {
     boost::shared_ptr<TrackingSystem> tracking;
 	MovingTarget* target;
 
+    EyeTemplate extractFeatures;
+
     FrameProcessing framefunctions;
     scoped_ptr<IplImage> canvas;
     scoped_ptr<VideoInput> videoinput;
-	
 
     MainGazeTracker(int argc, char** argv,
             const vector<boost::shared_ptr<AbstractStore> > &stores);
@@ -120,6 +124,7 @@ class MainGazeTracker {
     void savepoints();
     void loadpoints();
     void choosepoints();
+    void initiatechoosepoints();
 	void pauseOrRepositionHead();
     void clearpoints();
     void extract_face_region_rectangle(IplImage* frame, vector<Point> feature_points);

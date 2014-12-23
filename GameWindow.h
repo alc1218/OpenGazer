@@ -14,6 +14,7 @@ class GameArea: public Gtk::DrawingArea {
 	IplImage* current;
 	WindowPointer* calibrationPointer;
 	IplImage* repositioningImage;
+	IplImage* canvas;
 
     GameArea(TrackerOutput* op);
     virtual ~GameArea();
@@ -25,6 +26,10 @@ class GameArea: public Gtk::DrawingArea {
  protected:
     IplImage* orig_image;
 	IplImage* background;
+	IplImage* interface;
+	IplImage* canvas_resized;
+	IplImage* picture_resized;
+	IplImage* text_resized;
 	IplImage* frog;
 	IplImage* target;
 	//IplImage* black;
@@ -62,6 +67,7 @@ class GameWindow: public Gtk::Window {
 
  public:
 	int gray_level;
+	//scoped_ptr<IplImage> canvas;
     GameArea picture;
 	GameWindow(TrackerOutput* op);
     virtual ~GameWindow();

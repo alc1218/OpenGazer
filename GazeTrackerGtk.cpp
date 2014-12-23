@@ -7,7 +7,7 @@ static vector<boost::shared_ptr<AbstractStore> > getStores() {
     vector<boost::shared_ptr<AbstractStore> > stores;
 
     stores.push_back(boost::shared_ptr<AbstractStore>(new SocketStore()));
-    stores.push_back(boost::shared_ptr<AbstractStore>(new StreamStore(cout)));
+    //stores.push_back(boost::shared_ptr<AbstractStore>(new StreamStore(cout)));
     stores.push_back(boost::shared_ptr<AbstractStore>
       (new WindowStore(WindowPointer::PointerSpec(20, 30, 0, 0, 1),
 			   WindowPointer::PointerSpec(20, 20, 0, 1, 1),
@@ -56,7 +56,7 @@ GazeTrackerGtk::GazeTrackerGtk(int argc, char **argv):
 				      &MainGazeTracker::loadpoints));
 	    choosebutton.signal_clicked().
 		connect(sigc::mem_fun(&picture.gazetracker,
-				      &MainGazeTracker::choosepoints));
+				      &MainGazeTracker::initiatechoosepoints));
 	    pausebutton.signal_clicked().
 		connect(sigc::mem_fun(&picture.gazetracker,
 				      &MainGazeTracker::pauseOrRepositionHead));

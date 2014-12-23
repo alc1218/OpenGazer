@@ -48,8 +48,23 @@ void TrackingSystem::doprocessing(const IplImage *frame,
 
     headtracker.updatetracker();
     eyex.extractEye(frame);	// throws Tracking Exception
-    gazetracker.update(eyex.eyefloat.get(), eyex.eyegrey.get(), *eyex.vector_horizontal, *eyex.vector_vertical);
-    gazetracker.update_left(eyex.eyefloat_left.get(), eyex.eyegrey_left.get(), *eyex.vector_horizontal_left, *eyex.vector_vertical_left);
+    // TODO ARCADI 23/12
+    // Calculate the modified image using the segmentation and grayscale eye image (eyefloat)
+
+    IplImage* eyeGraySegmented_float = cvCreateImage( EyeExtractor::eyesize, IPL_DEPTH_32F, 1 );
+    IplImage* eyeGraySegmented_left_float = cvCreateImage( EyeExtractor::eyesize, IPL_DEPTH_32F, 1 );
+
+    IplImage* eyeGraySegmented = eyex.extractFeatures.processToExtractFeaturesWITHOUTVECTORS(eyex.eyegrey.get(), eyex.eyeimage.get());
+    IplImage* eyeGraySegmented_left = eyex.extractFeatures.processToExtractFeaturesWITHOUTVECTORS(eyex.eyegrey_left.get(), eyex.eyeimage_left.get());
+
+    cvConvertScale(eyeGraySegmented, eyeGraySegmented_float);
+    cvConvertScale(eyeGraySegmented_left, eyeGraySegmented_left_float);
+
+    gazetracker.update(eyeGraySegmented_float, eyex.eyegrey.get(), *eyex.vector_horizontal, *eyex.vector_vertical);
+    gazetracker.update_left(eyeGraySegmented_left_float, eyex.eyegrey_left.get(), *eyex.vector_horizontal_left, *eyex.vector_vertical_left);
+
+    //gazetracker.update(eyex.eyefloat.get(), eyex.eyegrey.get(), *eyex.vector_horizontal, *eyex.vector_vertical);
+    //gazetracker.update_left(eyex.eyefloat_left.get(), eyex.eyegrey_left.get(), *eyex.vector_horizontal_left, *eyex.vector_vertical_left);
 
     displayeye(image);
     tracker.draw(image);
@@ -78,24 +93,24 @@ void TrackingSystem::displayeye(IplImage *image)
 
     // RIGHT EYE
     // Mean eye image
-    cvConvertScale(features.getMean().get(),  eyegreytemp);
-    cvSetImageROI(image, cvRect(basex, basey, eyedx, eyedy));
-    cvCvtColor(eyegreytemp, image, CV_GRAY2RGB);
+    //cvConvertScale(features.getMean().get(),  eyegreytemp);
+    //cvSetImageROI(image, cvRect(basex, basey, eyedx, eyedy));
+    //cvCvtColor(eyegreytemp, image, CV_GRAY2RGB);
 
     // Grey eye image
-    cvSetImageROI(image, cvRect(basex, basey + stepy, eyedx, eyedy));
+    cvSetImageROI(image, cvRect(basex, basey, eyedx, eyedy));
     cvCvtColor(eyex.eyegrey.get(), image, CV_GRAY2RGB);
 
     // Color eye image
-    cvSetImageROI(image, cvRect(basex, basey + stepy*2, eyedx, eyedy));
+    cvSetImageROI(image, cvRect(basex, basey + stepy, eyedx, eyedy));
     cvCopy(eyex.eyeimage.get(), image); //, eyex.eyeimage.get());
 
     // Horizontal histogram Segmentation eye image
-    cvSetImageROI(image, cvRect(basex, basey + stepy*3, eyedx, eyedy));
+    cvSetImageROI(image, cvRect(basex, basey + stepy*2, eyedx, eyedy));
     cvCopy(eyex.histogram_horizontal, image); //, eyex.eyeimage.get());
 
     // Vertical histogram Segmentation eye image
-    cvSetImageROI(image, cvRect(basex, basey + stepy*4, eyedy, eyedx));
+    cvSetImageROI(image, cvRect(basex, basey + stepy*3, eyedy, eyedx));
     cvCopy(eyex.histogram_vertical, image); //, eyex.eyeimage.get());
 
 
@@ -104,24 +119,24 @@ void TrackingSystem::displayeye(IplImage *image)
     features_left.addSample(eyex.eyegrey_left.get());
 
     // Mean eye image
-    cvConvertScale(features_left.getMean().get(),  eyegreytemp);
-    cvSetImageROI(image, cvRect(basex + stepx, basey, eyedx, eyedy));
-    cvCvtColor(eyegreytemp, image, CV_GRAY2RGB);
+    //cvConvertScale(features_left.getMean().get(),  eyegreytemp);
+    //cvSetImageROI(image, cvRect(basex + stepx, basey, eyedx, eyedy));
+    //cvCvtColor(eyegreytemp, image, CV_GRAY2RGB);
 
     // Grey eye image
-    cvSetImageROI(image, cvRect(basex + stepx, basey + stepy, eyedx, eyedy));
+    cvSetImageROI(image, cvRect(basex + stepx, basey, eyedx, eyedy));
     cvCvtColor(eyex.eyegrey_left.get(), image, CV_GRAY2RGB);
 
     // Color eye image
-    cvSetImageROI(image, cvRect(basex + stepx, basey + stepy*2, eyedx, eyedy));
+    cvSetImageROI(image, cvRect(basex + stepx, basey + stepy, eyedx, eyedy));
     cvCopy(eyex.eyeimage_left.get(), image); //eyex.eyeimage_left.get());
 
     // Horizontal histogram Segmentation eye image
-    cvSetImageROI(image, cvRect(basex + stepx, basey + stepy*3, eyedx, eyedy));
+    cvSetImageROI(image, cvRect(basex + stepx, basey + stepy*2, eyedx, eyedy));
     cvCopy(eyex.histogram_horizontal_left, image); //, eyex.eyeimage.get());
 
     // Vertical histogram Segmentation eye image
-    cvSetImageROI(image, cvRect(basex + stepx, basey + stepy*4, eyedy, eyedx));
+    cvSetImageROI(image, cvRect(basex + stepx, basey + stepy*3, eyedy, eyedx));
     cvCopy(eyex.histogram_vertical_left, image); //, eyex.eyeimage.get());
 
 

@@ -12,7 +12,6 @@ class EyeExtractor {
 	BlinkDetector blinkdet;
 	BlinkDetector blinkdet_left;
 	bool blink;
-    ExtractEyeFeaturesSegmentation extractFeatures;
     void processEye(void);
 
 public:
@@ -21,10 +20,13 @@ public:
     static const int eyedy;
     static const CvSize eyesize;
 
+    ExtractEyeFeaturesSegmentation extractFeatures;
+
     scoped_ptr<IplImage> eyegrey, eyefloat, eyeimage;
     scoped_ptr<IplImage> eyegrey_left, eyefloat_left, eyeimage_left;
     IplImage* histogram_horizontal, * histogram_vertical, * histogram_horizontal_left, * histogram_vertical_left;
     scoped_ptr<std::vector<int> > vector_horizontal, vector_vertical, vector_horizontal_left, vector_vertical_left;
+    IplImage* eyeGraySegmented, * eyeGraySegmented_left;
 
     EyeExtractor(const PointTracker &tracker);
     void extractEye(const IplImage *origimage) throw (TrackingException);

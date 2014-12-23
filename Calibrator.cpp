@@ -119,9 +119,13 @@ void Calibrator::process() {
                 vectorOfVectors_horizontal_left->push_back(*trackingsystem->eyex.vector_horizontal_left);
                 vectorOfVectors_vertical_left->push_back(*trackingsystem->eyex.vector_vertical_left);
 
+                // TODO ARCADI 23/12
 
-                averageeye->addSample(trackingsystem->eyex.eyefloat.get());
-                averageeye_left->addSample(trackingsystem->eyex.eyefloat_left.get());
+                averageeye->addSample(trackingsystem->eyex.eyeGraySegmented);
+                averageeye_left->addSample(trackingsystem->eyex.eyeGraySegmented_left);
+
+                //averageeye->addSample(trackingsystem->eyex.eyefloat.get());
+                //averageeye_left->addSample(trackingsystem->eyex.eyefloat_left.get());
                 
                 // Neural network 
                 //if(dummy % 8 == 0) {  // Only add samples on the 11-19-27-35 frames
@@ -229,7 +233,7 @@ void Calibrator::process() {
 */
 
 
-            trackingsystem->gazetracker.regression.AddSample(points[id], vectorOfVectors_horizontal->operator[](getPointNo()), vectorOfVectors_vertical->operator[](getPointNo()));
+            //trackingsystem->gazetracker.regression.AddSample(points[id], vectorOfVectors_horizontal->operator[](getPointNo()), vectorOfVectors_vertical->operator[](getPointNo()));
 
             trackingsystem->gazetracker.
             addExemplar(points[id], averageeye->getMean().get(),
@@ -237,7 +241,7 @@ void Calibrator::process() {
                     vectorOfVectors_horizontal->operator[](getPointNo()), vectorOfVectors_vertical->operator[](getPointNo()));
 
 
-            trackingsystem->gazetracker.regression.AddSample(points[id], vectorOfVectors_horizontal_left->operator[](getPointNo()), vectorOfVectors_vertical_left->operator[](getPointNo()));
+            //trackingsystem->gazetracker.regression.AddSample(points[id], vectorOfVectors_horizontal_left->operator[](getPointNo()), vectorOfVectors_vertical_left->operator[](getPointNo()));
 
             // ONUR DUPLICATED CODE
             trackingsystem->gazetracker.

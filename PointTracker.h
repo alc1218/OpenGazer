@@ -22,6 +22,8 @@ public:
     scoped_ptr<IplImage> grey, orig_grey, pyramid, orig_pyramid,
 	last_grey, last_pyramid;
 
+    IplImage* template_left, * template_right;
+
     void synchronizepoints();
 
 public:
