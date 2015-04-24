@@ -2,6 +2,7 @@
 #include "EyeExtractor.h"
 #include "mir.h"
 #include <time.h>
+#include <fstream>
 
 fann_type *all_inputs[1000], *all_outputs[1000];
 fann_type *all_inputs_left[1000], *all_outputs_left[1000];
@@ -28,21 +29,26 @@ int Targets::getCurrentTarget(Point point) {
 CalTarget::CalTarget() {}
 
 CalTarget::CalTarget(Point point, 
-		     const IplImage* image, const IplImage* origimage, vector<int> hist_horizontal,
-			      vector<int> hist_vertical):
+		     const IplImage* image, const IplImage* origimage, std::vector<std::vector<int> > histPositionSegmentedPixels):
     point(point), 
     image(cvCloneImage(image), releaseImage), 
     origimage(cvCloneImage(origimage), releaseImage)
 {
 
-	std::vector<int>::iterator it;
-	it=hist_horizontal.begin();
+	cout << "PRINCIPIO CREACION DEL CALTARGET" << endl;
 
-	vector_horizontal.assign(it, hist_horizontal.end());
+	vector_h_v_combined = histPositionSegmentedPixels;
 
-	it=hist_vertical.begin();
+	//std::vector<int>::iterator it;
+	//it=hist_horizontal.begin();
 
-    vector_vertical.assign(it, hist_vertical.end());
+	//vector_horizontal.assign(it, hist_horizontal.end());
+
+	//it=hist_vertical.begin();
+
+    //vector_vertical.assign(it, hist_vertical.end());
+
+   	cout << "FINAL CREACION DEL CALTARGET" << endl;
 }
 
 void CalTarget::save(CvFileStorage* out, const char* name) {
@@ -106,8 +112,8 @@ double GazeTracker::covariancefunction(SharedImage const& im1,
 // Create copy of these two functions, and modify so that they use histograms
 double GazeTracker::histDistance(vector<int> histogram1, vector<int> histogram2) {
  
-    const double sigma = 50.0; // 1.0;
-    const double lscale = 100.0; // 500.00;
+    const double sigma = 125.0; // 1.0;
+    const double lscale = 250.0; // 500.00;
 
 	double norm = 0.0;
 
@@ -128,6 +134,188 @@ double GazeTracker::covariancefunction_hist(vector<int> const& histogram1, vecto
     return histDistance(histogram1, histogram2);
 }
 
+// TODO ARCADI CONTINUE
+// Create copy of these two functions, and modify so that they use histograms
+double GazeTracker::histDistancePosition_x(vector<vector<int> > histogram1, vector<vector<int> > histogram2) {
+ 
+    const double sigma = 125.0; // 1000.0;
+    const double lscale = 250.0; // 10000.00;
+
+	double norm = 0.0;
+
+	int NumberToLookFor;
+	
+	bool trobat = false;
+
+	int aux_hist1 = 0;
+	int aux_hist2 = 0;
+
+	double horizontal_hist1 = 0, vertical_hist1 = 0, horizontal_hist2 = 0, vertical_hist2 = 0;
+
+	/*
+	if (histogram2.operator[](e).operator[](r) < 128) {
+		horizontal_hist2 += 1
+	} else {
+		vertical_hist2 += 2
+	}
+	*/
+
+    for (int i = 0; i < histogram1.size(); i++) {
+    	for (int j = 0; j < histogram1.operator[](i).size(); j++) {
+
+    		NumberToLookFor = histogram1.operator[](i).operator[](j);
+
+    		for (int e = 0; e < histogram2.size(); e++) {
+
+    			for (int r = 0; r < histogram2.operator[](e).size(); r++) {
+
+    				if (NumberToLookFor == histogram2.operator[](e).operator[](r)) {
+    					if (histogram1.operator[](i).operator[](j) < 128) {
+    						norm += abs(horizontal_hist1 - horizontal_hist2);
+    					} else {
+							norm += abs(vertical_hist1 - vertical_hist2);
+    					}
+    					trobat = true;
+    					break;
+    				}
+    			}
+
+    			if (trobat == false) {
+    				for (int r = 0; r < histogram2.operator[](e).size(); r++) {
+    					if (histogram2.operator[](e).operator[](r) < 128) {
+							horizontal_hist2 +=1;
+						} else {
+							vertical_hist2 += 1;
+						}
+					}
+    				//aux_hist2 += histogram2.operator[](e).size();
+    			} else {
+    				horizontal_hist2 = 0;
+    				vertical_hist2 = 0;
+    				aux_hist2 = 0;
+    				trobat = false;
+    				break;
+    			}
+    		}
+    	}
+    	
+		for (int j = 0; j < histogram1.operator[](i).size(); j++) {
+			if (histogram1.operator[](i).operator[](j) < 128) {
+				horizontal_hist1 += 1;
+			} else {
+				vertical_hist1 += 1;
+			}
+		}
+    	//aux_hist1 += histogram1.operator[](i).size();
+    }
+
+    cout << "norm: " << norm << endl;
+
+    norm = sigma*sigma*exp(-norm / (2*lscale*lscale) );
+
+    //cout << "FORMULA norm: " << norm << endl;
+    //cin.get();
+
+	//cin.get();
+
+    return norm;
+}
+
+double GazeTracker::covariancefunction_hist_position_x(vector<vector<int> > const& histogram1, vector<vector<int> > const& histogram2)
+{
+    return histDistancePosition_x(histogram1, histogram2);
+}
+
+double GazeTracker::histDistancePosition_y(vector<vector<int> > histogram1, vector<vector<int> > histogram2) {
+ 
+    const double sigma =175.0; // 1000.0;
+    const double lscale = 1000.0; // 10000.00;
+
+	double norm = 0.0;
+
+	int NumberToLookFor;
+	
+	bool trobat = false;
+
+	int aux_hist1 = 0;
+	int aux_hist2 = 0;
+
+	double horizontal_hist1 = 0, vertical_hist1 = 0, horizontal_hist2 = 0, vertical_hist2 = 0;
+
+	/*
+	if (histogram2.operator[](e).operator[](r) < 128) {
+		horizontal_hist2 += 1
+	} else {
+		vertical_hist2 += 2
+	}
+	*/
+
+    for (int i = 0; i < histogram1.size(); i++) {
+    	for (int j = 0; j < histogram1.operator[](i).size(); j++) {
+
+    		NumberToLookFor = histogram1.operator[](i).operator[](j);
+
+    		for (int e = 0; e < histogram2.size(); e++) {
+
+    			for (int r = 0; r < histogram2.operator[](e).size(); r++) {
+
+    				if (NumberToLookFor == histogram2.operator[](e).operator[](r)) {
+    					if (histogram1.operator[](i).operator[](j) < 128) {
+    						norm += abs(horizontal_hist1 - horizontal_hist2);
+    					} else {
+							norm += abs(vertical_hist1 - vertical_hist2);
+    					}
+    					trobat = true;
+    					break;
+    				}
+    			}
+
+    			if (trobat == false) {
+    				for (int r = 0; r < histogram2.operator[](e).size(); r++) {
+    					if (histogram2.operator[](e).operator[](r) < 128) {
+							horizontal_hist2 += 1;
+						} else {
+							vertical_hist2 += 25;
+						}
+					}
+    				//aux_hist2 += histogram2.operator[](e).size();
+    			} else {
+    				horizontal_hist2 = 0;
+    				vertical_hist2 = 0;
+    				aux_hist2 = 0;
+    				trobat = false;
+    				break;
+    			}
+    		}
+    	}
+    	
+		for (int j = 0; j < histogram1.operator[](i).size(); j++) {
+			if (histogram1.operator[](i).operator[](j) < 128) {
+				horizontal_hist1 += 1;
+			} else {
+				vertical_hist1 += 25;
+			}
+		}
+    	//aux_hist1 += histogram1.operator[](i).size();
+    }
+
+    cout << "norm: " << norm << endl;
+
+    norm = sigma*sigma*exp(-norm / (2*lscale*lscale) );
+
+    //cout << "FORMULA norm: " << norm << endl;
+    //cin.get();
+
+	//cin.get();
+
+    return norm;
+}
+
+double GazeTracker::covariancefunction_hist_position_y(vector<vector<int> > const& histogram1, vector<vector<int> > const& histogram2)
+{
+    return histDistancePosition_y(histogram1, histogram2);
+}
+
 void GazeTracker::updateGPs(void) {
     vector<double> xlabels;
     vector<double> ylabels;
@@ -141,12 +329,9 @@ void GazeTracker::updateGPs(void) {
 	getsubvector(caltargets, &CalTarget::image);
 
 
-    vector<vector<int> > vector_horizontals = 
-	getsubvector(caltargets, &CalTarget::vector_horizontal);
+    vector<vector<vector<int> > > vectors_h_v_combined = 
+	getsubvector(caltargets, &CalTarget::vector_h_v_combined);
 
-
-    vector<vector<int> > vector_verticals = 
-	getsubvector(caltargets, &CalTarget::vector_vertical);
 	
 	/*
 cout << "INSIDE updateGPs" << endl;
@@ -156,29 +341,23 @@ cout << "images size: " << images.size();
     gpx.reset(new ImProcess(images, xlabels, covariancefunction, 0.01));
     gpy.reset(new ImProcess(images, ylabels, covariancefunction, 0.01));  
 
-
 // ---------------------------------------------- ARCADI PROCESS ----------------------------------------------
 
-    histx.reset(new HistProcess(vector_horizontals, xlabels, covariancefunction_hist, 0.01));
-    histy.reset(new HistProcess(vector_verticals, ylabels, covariancefunction_hist, 0.01));  
+    /*std::vector<std::vector<std::vector<int> > > vector_h_v_combined;
 
-/*
-    vector<vector<int> > vectors_horizontals_and_verticals =
-	getsubvector(caltargets, &CalTarget::vector_horizontal);
+    for(int i=0; i<vector_horizontals.size(); i++) {
+    	vector<vector<int> > new_target;
 
+    	new_target.insert(new_target.end(), vector_horizontals[i].begin(), vector_horizontals[i].end());
+    	new_target.insert(new_target.end(), vector_verticals[i].begin(), vector_verticals[i].end());
 
-	copy( vector_verticals[vector_horizontals.size()-1].begin(), vector_verticals[vector_horizontals.size()-1].end(), back_inserter(vectors_horizontals_and_verticals[vector_horizontals.size()-1]));
+    	vector_h_v_combined.push_back(new_target);
+    }*/
 
+    histx.reset(new HistProcess(vectors_h_v_combined, xlabels, covariancefunction_hist_position_x, 0.01));
+    histy.reset(new HistProcess(vectors_h_v_combined, ylabels, covariancefunction_hist_position_y, 0.01));  	// ONUR Passed combination of histograms to vertical direction
 
-    histx.reset(new HistProcess(vectors_horizontals_and_verticals, xlabels, covariancefunction_hist, 0.01));
-    histy.reset(new HistProcess(vectors_horizontals_and_verticals, ylabels, covariancefunction_hist, 0.01));  
-*/
-    // TODO ARCADI MIR.CPP
-    
-// ------------------------------------------------------------------------------------------------------------
-
-   // TODO ARCADI CONTINUE Create new type of GaussianProcesses (HistProcess) (with different covariance func)
-    targets.reset(new Targets(getsubvector(caltargets, &CalTarget::point)));
+	targets.reset(new Targets(getsubvector(caltargets, &CalTarget::point)));
 
 }
 
@@ -195,12 +374,8 @@ void GazeTracker::updateGPs_left(void) {
 	getsubvector(caltargets_left, &CalTarget::image);
 
 
-    vector<vector<int> > vector_horizontals = 
-	getsubvector(caltargets_left, &CalTarget::vector_horizontal);
-
-
-    vector<vector<int> > vector_verticals = 
-	getsubvector(caltargets_left, &CalTarget::vector_vertical);
+    vector<vector<vector<int> > > vectors_h_v_combined = 
+	getsubvector(caltargets_left, &CalTarget::vector_h_v_combined);
 
 
     gpx_left.reset(new ImProcess(images, xlabels, covariancefunction, 0.01));
@@ -208,23 +383,20 @@ void GazeTracker::updateGPs_left(void) {
 
 // ---------------------------------------------- ARCADI PROCESS ----------------------------------------------
 
-    histx_left.reset(new HistProcess(vector_horizontals, xlabels, covariancefunction_hist, 0.01));
-    histy_left.reset(new HistProcess(vector_verticals, ylabels, covariancefunction_hist, 0.01));  
+    /*vector<vector<vector<int> > > vector_h_v_combined;
 
-/*
-    vector<vector<int> > vectors_horizontals_and_verticals =
-	getsubvector(caltargets_left, &CalTarget::vector_horizontal);
+    for(int i=0; i<vector_horizontals.size(); i++) {
+    	vector<vector<int> > new_target;
 
-	copy( vector_verticals[vector_horizontals.size()-1].begin(), vector_verticals[vector_horizontals.size()-1].end(), back_inserter(vectors_horizontals_and_verticals[vector_horizontals.size()-1]));
+    	new_target.insert(new_target.end(), vector_horizontals[i].begin(), vector_horizontals[i].end());
+    	new_target.insert(new_target.end(), vector_verticals[i].begin(), vector_verticals[i].end());
 
-    histx_left.reset(new HistProcess(vectors_horizontals_and_verticals, xlabels, covariancefunction_hist, 0.01));
-    histy_left.reset(new HistProcess(vectors_horizontals_and_verticals, ylabels, covariancefunction_hist, 0.01));  
-*/
+    	vector_h_v_combined.push_back(new_target);
+    }*/
 
-// ------------------------------------------------------------------------------------------------------------
+    histx_left.reset(new HistProcess(vectors_h_v_combined, xlabels, covariancefunction_hist_position_x, 0.01));
+    histy_left.reset(new HistProcess(vectors_h_v_combined, ylabels, covariancefunction_hist_position_y, 0.01));  	// ONUR Passed combination of histograms to vertical direction
 
-    // TODO ARCADI CONTINUE Create new type of GaussianProcesses (HistProcess) (with different covariance func)
-    //targets_left.reset(new Targets(getsubvector(caltargets_left, &CalTarget::point)));
 }
 
 void GazeTracker::calculateTrainingErrors() {
@@ -381,24 +553,66 @@ void GazeTracker::clear() {
 void GazeTracker::addExemplar(Point point, 
 			      const IplImage *eyefloat, 
 			      const IplImage *eyegrey,
-			      vector<int> hist_horizontal,
-			      vector<int> hist_vertical) // TODO ARCADI CONTINUE, Add histogram parameters
+			      std::vector<std::vector<int> > histPositionSegmentedPixels) // TODO ARCADI CONTINUE, Add histogram parameters
 {
 
 	cout << "RIGHT" << endl;
-    caltargets.push_back(CalTarget(point, eyefloat, eyegrey, hist_horizontal, hist_vertical)); // TODO ARCADI CONTINUE, Add histograms to caltarget structure
+/*
+	int total = 0;
+
+	for (int w = 0; w<hist_horizontal.size(); w++){
+
+		total += hist_horizontal[w];
+
+	}
+
+    std::fstream fs;
+
+    fs.open ("salida.txt", std::fstream::in | std::fstream::out | std::fstream::app);
+
+    fs << total << endl;
+
+    fs.close();
+
+	cout << "total: " << total << endl;
+*/
+
+    caltargets.push_back(CalTarget(point, eyefloat, eyegrey, histPositionSegmentedPixels)); // TODO ARCADI CONTINUE, Add histograms to caltarget structure
+    
+    cout << "HE AÑADIDO EL OBJETO CALTARGET" << endl;
+
     updateGPs();
+
+    cout << "HE ACTUALIZADO EL GPs" << endl;
 }
 
 void GazeTracker::addExemplar_left(Point point, 
 			      const IplImage *eyefloat, 
 			      const IplImage *eyegrey,
-			      vector<int> hist_horizontal_left,
-			      vector<int> hist_vertical_left) 	 // TODO ARCADI CONTINUE, Add histogram parameters
+			      std::vector<std::vector<int> > histPositionSegmentedPixels_left) 	 // TODO ARCADI CONTINUE, Add histogram parameters
 {
 
 	cout << "LEFT" << endl;
-    caltargets_left.push_back(CalTarget(point, eyefloat, eyegrey, hist_horizontal_left, hist_vertical_left)); // TODO ARCADI CONTINUE, Add histograms to caltarget structure
+/*
+	int total = 0;
+
+	for (int w = 0; w<hist_horizontal_left.size(); w++){
+
+		total += hist_horizontal_left[w];
+
+	}
+
+    std::fstream fs;
+
+    fs.open ("salida_left.txt", std::fstream::in | std::fstream::out | std::fstream::app);
+
+    fs << total << endl;
+
+    fs.close();
+
+	cout << "total: " << total << endl;
+*/
+    caltargets_left.push_back(CalTarget(point, eyefloat, eyegrey, histPositionSegmentedPixels_left)); // TODO ARCADI CONTINUE, Add histograms to caltarget structure
     updateGPs_left();
 }
 
@@ -596,16 +810,32 @@ void GazeTracker::load(CvFileStorage *in, CvFileNode *node) {
 							       "caltargets"));
 }
 
-void GazeTracker::update(const IplImage *image, const IplImage *eyegrey, vector<int> vector_horizontal,
-			      vector<int> vector_vertical) {
+void GazeTracker::update(const IplImage *image, const IplImage *eyegrey, vector<vector<int> > vector_h_v_combined) {
     if (isActive()) {
     	// TODO ARCADI 23/12
 
-		output.gazepoint = Point(gpx->getmean(SharedImage(image, &ignore)), 
-					 gpy->getmean(SharedImage(image, &ignore)));
+		//output.gazepoint = Point(gpx->getmean(SharedImage(image, &ignore)), 
+		//			 gpy->getmean(SharedImage(image, &ignore)));
+
+// TODO ONUR COMBINED H AND V
+//vector<vector<int> > vector_h_v_combined;
+//vector_h_v_combined.insert(vector_h_v_combined.end(), vector_horizontal.begin(), vector_horizontal.end());
+//vector_h_v_combined.insert(vector_h_v_combined.end(), vector_vertical.begin(), vector_vertical.end());
+
+//cout << "UPDATE! Vertical Vector size: " << vector_h_v_combined.size() << endl;
+//cout.flush();
 
 		//output.gazepoint = Point(histx->getmean(vector_horizontal), 
 		//			 histy->getmean(vector_vertical));
+		// Use combined only for Y
+		//output.gazepoint = Point(histx->getmean(vector_horizontal), 
+		//			 histy->getmean(vector_h_v_combined));
+
+		cout << "Size of vector[5]: " << vector_h_v_combined.size() << endl;
+
+		// Use combined for both directions
+		output.gazepoint = Point(histx->getmean(vector_h_v_combined), 
+					 histy->getmean(vector_h_v_combined));
 
 /*
     	vector<int> vector_horizontal_and_vertical;
@@ -641,16 +871,31 @@ void GazeTracker::update(const IplImage *image, const IplImage *eyegrey, vector<
     }
 }
 
-void GazeTracker::update_left(const IplImage *image, const IplImage *eyegrey, vector<int> vector_horizontal_left,
-			      vector<int> vector_vertical_left) {
+void GazeTracker::update_left(const IplImage *image, const IplImage *eyegrey, vector<vector<int> > vector_h_v_combined) {
     if (isActive()) {
     	// TODO ARCADI 23/12
 
-		output.gazepoint_left = Point(gpx_left->getmean(SharedImage(image, &ignore)), 
-					 gpy_left->getmean(SharedImage(image, &ignore)));
+		//output.gazepoint_left = Point(gpx_left->getmean(SharedImage(image, &ignore)), 
+		//			 gpy_left->getmean(SharedImage(image, &ignore)));
+
+// TODO ONUR COMBINED H AND V
+//vector<vector<int> > vector_h_v_combined;
+//vector_h_v_combined.insert(vector_h_v_combined.end(), vector_horizontal_left.begin(), vector_horizontal_left.end());
+//vector_h_v_combined.insert(vector_h_v_combined.end(), vector_vertical_left.begin(), vector_vertical_left.end());
+
+//cout << "UPDATE LEFT! Vertical Vector size: " << vector_h_v_combined.size() << endl;
+//cout.flush();
 
 		//output.gazepoint_left = Point(histx_left->getmean(vector_horizontal_left), 
 		//			 histy_left->getmean(vector_vertical_left));
+
+		// Use combined only for Y
+		//output.gazepoint_left = Point(histx_left->getmean(vector_horizontal_left), 
+		//			 histy_left->getmean(vector_h_v_combined));
+
+		// Use combined for both directions
+		output.gazepoint_left = Point(histx_left->getmean(vector_h_v_combined), 
+					 histy_left->getmean(vector_h_v_combined));
 
 /*
     	vector<int> vector_horizontal_and_vertical_left;
@@ -999,5 +1244,3 @@ Return value:
         return output;
 
     }
-
-

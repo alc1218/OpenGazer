@@ -35,7 +35,7 @@ GameArea::GameArea(TrackerOutput* op)
 	Gdk::Rectangle rect;
 	screen->get_monitor_geometry(Gdk::Screen::get_default()->get_n_monitors() - 1, rect);
 
-	set_size_request(rect.get_width(), rect.get_height());
+	set_size_request(1280, 777);
 	
 	
 		
@@ -55,12 +55,18 @@ GameArea::GameArea(TrackerOutput* op)
 	frog = (IplImage*) cvCreateImage(cvSize(180, 180), 8, 3 );
 	target = (IplImage*) cvCreateImage(cvSize(50, 50), 8, 3 );
 	
-	background = (IplImage*) cvCreateImage(cvSize(rect.get_width(), rect.get_height()), 8, 3 );
+	background = (IplImage*) cvCreateImage(cvSize(1280, 777), 8, 3 );
 	current = (IplImage*) cvCreateImage(cvSize(background->width, background->height), 8, 3 );
-	interface = (IplImage*) cvCreateImage(cvSize(rect.get_width(), rect.get_height()), 8, 3 );
+	interface = (IplImage*) cvCreateImage(cvSize(1280, 777), 8, 3 );
 	canvas_resized = (IplImage*) cvCreateImage(cvSize(interface->width/2, interface->height/2), 8, 3 );
 	picture_resized = (IplImage*) cvCreateImage(cvSize((interface->width/2)/picturesX, interface->height/picturesY), 8, 3 );
 	text_resized = (IplImage*) cvCreateImage(cvSize(interface->width/2, interface->height/2), 8, 3 );
+
+
+	interface2 = (IplImage*) cvCreateImage(cvSize(1280, 777), 8, 3 );
+	picture_resized2 = (IplImage*) cvCreateImage(cvSize(interface->width/picturesX, interface->height/picturesY), 8, 3 );
+	text_resized2 = (IplImage*) cvCreateImage(cvSize(interface->width, interface->height), 8, 3 );
+
 	//black = (IplImage*) cvCreateImage(cvSize(background->width, background->height), 8, 3 );
     clearing_image = (IplImage*) cvCreateImage(cvSize(2000, 1500), 8, 3 );
 	
@@ -79,8 +85,8 @@ GameArea::GameArea(TrackerOutput* op)
 	
 	
 	
-	game_area_x = (rect.get_width()-orig_image->width)/2;
-	game_area_y = (rect.get_height()-orig_image->height)/2;
+	game_area_x = (1280-orig_image->width)/2;
+	game_area_y = (777-orig_image->height)/2;
 	game_area_width = orig_image->width;
 	game_area_height = orig_image->height;
 	
@@ -110,9 +116,22 @@ GameArea::GameArea(TrackerOutput* op)
     last_updated_region = new CvRect();
     last_updated_region->x = 0;
     last_updated_region->y = 0;
-    last_updated_region->width = rect.get_width()-54;
-    last_updated_region->height = rect.get_height()-24;
+    last_updated_region->width = 1280-54;
+    last_updated_region->height = 777-24;
     is_window_initialized = false;
+
+	secondWindow = new GameWindowText();
+	secondWindow->hide();
+	secondWindow->show();
+	secondWindow->present();
+/*
+	game_win_text = new GameWindowText();
+	game_win_text->picture2.canvas = canvas;
+	game_win_text->hide();
+	game_win_text->show();
+	game_win_text->present();
+*/
+
 }
 
 GameArea::~GameArea(void) {}
@@ -235,8 +254,8 @@ void GameArea::showContents() {
 				int estimation_x = (estimation_x_right + estimation_x_left) / 2;
 				int estimation_y = (estimation_y_right + estimation_y_left) / 2;
 				
-				//int estimation_x = output->gazepoint.x;
-				//int estimation_y = output->gazepoint.y;
+				//estimation_x = (output->gazepoint.x+output->gazepoint_left.x) / 2;
+				//estimation_y = (output->gazepoint.y+output->gazepoint_left.y) / 2;
 				//cout << "INIT EST: " << estimation_x << ", " << estimation_y << endl;
 				
 				// Map estimation to window coordinates
@@ -266,7 +285,7 @@ void GameArea::showContents() {
 				cvResetImageROI(current);
 				cvResetImageROI(gaussian_mask);
 				
-			int value_test = 2;
+			int value_test = 3;
 
 			if (value_test == 1) {
 
@@ -476,12 +495,11 @@ void GameArea::showContents() {
 				cvResetImageROI(interface);
 
 
-				// GAZE ESTIMATION
-				if ((view_image) < (picturesX * picturesY)) {
+              /*  if(view_image < picturesX * picturesY) {
 					Point estimation(0, 0);
 					mapToVideoCoordinates(Point(1280-estimation_x, estimation_y), interface->height, estimation);
 					cvCircle((CvArr*) interface, cvPoint(estimation.x, estimation.y), 8, cvScalar(0, 255, 0), -1, 8, 0);
-				}
+				}*/
 
 				cvResize(interface, repositioningImage);
 				//repositioningImage = interface;
@@ -497,9 +515,124 @@ void GameArea::showContents() {
 			    window->draw_pixbuf(gc, pixbuf, 0, 0, 0, 0, interface->width, interface->height,
 					    Gdk::RGB_DITHER_NONE, 0, 0);
 
+			} else if (value_test == 3) {
+
+				// PICTURE TO INTERFACE
+
+				boost::filesystem::directory_iterator end_itr;
+				
+				boost::filesystem::path pictures_path("../Images_Google/Pictures");
+				boost::filesystem::directory_iterator picture_image(pictures_path);
+
+				for (int i = 0; i < picturesX; i++) {
+
+					for (int j = 0; j < picturesY; j++) {
+
+						cvSetImageROI(interface, cvRect(interface->width/picturesX * i, interface->height/picturesY * j, interface->width/picturesX, interface->height/picturesY));
+
+						if(picture_image->path().filename().string().compare(".DS_Store") == 0 || picture_image->path().filename().string().compare(".") == 0 || picture_image->path().filename().string().compare("..") == 0) {
+							
+							++picture_image;
+							j--;
+							continue;
+						} else if(picture_image != end_itr) {
+						
+							IplImage* picture = (IplImage*) cvLoadImage(picture_image->path().string().c_str());
+
+							cvResize(picture, picture_resized2);
+
+						    cvCopy(picture_resized2, interface);
+
+							++picture_image;
+						}
+
+
+						cvResetImageROI(interface);
+					}
+				}
+
+
+				// INFORMATION TEXT OF PICTURES TO INTERFACE
+				
+				boost::filesystem::path text_path("../Images_Google/Text");
+				boost::filesystem::directory_iterator text_image(text_path);
+
+				int index_x = estimation_x / (interface2->width / picturesX);
+				int index_y = estimation_y / (interface2->height / picturesY);
+				int view_image = (index_x * picturesX) + index_y;
+
+				if ((view_image) < (picturesX * picturesY)) {
+
+					cvSetImageROI(interface2, cvRect(0, 0, interface2->width, interface2->height));
+					
+					int image_file_index = 0;
+
+					while(true) {
+					//for (int i = 0; i < view_image; i++) {
+						if (text_image->path().filename().string().compare(".DS_Store") == 0 || text_image->path().filename().string().compare(".") == 0 || text_image->path().filename().string().compare("..") == 0) {
+							;
+						}
+						else {
+							if(image_file_index == view_image)
+								break;
+
+							image_file_index++;
+						}
+
+						text_image++;
+					}
+					
+					IplImage* text = (IplImage*) cvLoadImage(text_image->path().string().c_str());
+
+					cvResize(text, text_resized2);
+
+				    cvCopy(text_resized2, interface2);
+
+					cvResetImageROI(interface2);
+
+				}
+
+				// PICTURE FRAMEWORK TO INTERFACE
+
+				cvSetImageROI(interface, cvRect(index_x * interface->width/picturesX, index_y * interface->height/picturesY, interface->width/picturesX, interface->height/picturesY));
+
+				cvRectangle(interface, cvPoint(0 ,0), cvPoint(interface->width/picturesX, interface->height/picturesY), cvScalar(255,255, 0), 10, 8, 0);
+
+				cvResetImageROI(interface);
+
+
+
+				cvResize(interface, repositioningImage);
+				//repositioningImage = interface;
+
+			    Glib::RefPtr<Gdk::Pixbuf> pixbuf =
+			    Gdk::Pixbuf::create_from_data((guint8*) interface->imageData,
+							    Gdk::COLORSPACE_RGB,
+							    false,
+							    interface->depth,
+							    interface->width,
+							    interface->height,
+							    interface->widthStep);
+			    window->draw_pixbuf(gc, pixbuf, 0, 0, 0, 0, interface->width, interface->height,
+					    Gdk::RGB_DITHER_NONE, 0, 0);
+
+
+			    secondWindow->showImage(interface2);
+			    /*Glib::RefPtr<Gdk::Window> window2 = get_window();
+				Glib::RefPtr<Gdk::GC> gc2 = Gdk::GC::create(window2);
+
+			    Glib::RefPtr<Gdk::Pixbuf> pixbuf2 =
+			    Gdk::Pixbuf::create_from_data((guint8*) interface2->imageData,
+							    Gdk::COLORSPACE_RGB,
+							    false,
+							    interface2->depth,
+							    interface2->width,
+							    interface2->height,
+							    interface2->widthStep);
+			    window2->draw_pixbuf(gc2, pixbuf2, 0, 0, 0, 0, interface2->width, interface2->height,
+					    Gdk::RGB_DITHER_NONE, 0, 0);*/
+
 			}
-
-
 
 		}
         else if(!is_window_initialized) {
@@ -611,7 +744,7 @@ GameWindow::GameWindow(TrackerOutput* op) :
 		Glib::RefPtr<Gdk::Screen> screen = Gdk::Display::get_default()->get_default_screen();
 		Gdk::Rectangle rect;
 		screen->get_monitor_geometry(Gdk::Screen::get_default()->get_n_monitors() - 1, rect);
-		
+
 		//this->set_keep_above(true);
 		// Set tracker output
 		
@@ -677,5 +810,75 @@ void GameWindow::changeWindowColor(double illuminationLevel) {
 	gray_level = gray_level % 256;
 	
 	background_color2 = CV_RGB(gray_level, gray_level, gray_level);
+}
+
+
+
+
+
+
+
+
+
+ImageArea::ImageArea()  
+{
+	Glib::RefPtr<Gdk::Screen> screen = Gdk::Display::get_default()->get_default_screen();
+	Gdk::Rectangle rect;
+	screen->get_monitor_geometry(Gdk::Screen::get_default()->get_n_monitors() - 1, rect);
+
+	set_size_request(1280, 777);
+
+}
+
+ImageArea::~ImageArea(void) {}
+
+void ImageArea::showImage(IplImage *image) {
+	Glib::RefPtr<Gdk::Window> window = get_window();
+	if (window) {
+			Glib::RefPtr<Gdk::GC> gc = Gdk::GC::create(window);
+			
+		    Glib::RefPtr<Gdk::Pixbuf> pixbuf =
+		    Gdk::Pixbuf::create_from_data((guint8*) image->imageData,
+						    Gdk::COLORSPACE_RGB,
+						    false,
+						    image->depth,
+						    image->width,
+						    image->height,
+						    image->widthStep);
+		    window->draw_pixbuf(gc, pixbuf, 0, 0, 0, 0, image->width, image->height,
+				    Gdk::RGB_DITHER_NONE, 0, 0);
+	}
+}
+
+GameWindowText::GameWindowText() :
+	picture2()
+{
+	try {
+		set_title("Game Window2");
+		
+		// Center window
+		Glib::RefPtr<Gdk::Screen> screen2 = Gdk::Display::get_default()->get_default_screen();
+		Gdk::Rectangle rect2;
+		screen2->get_monitor_geometry(Gdk::Screen::get_default()->get_n_monitors() - 1, rect2);
+		
+	    add(vbox2);
+	    vbox2.pack_start(picture2);
+
+	    picture2.show();
+
+	    vbox2.show();
+	
+		//picture2.showContents();
+		
+		//move(rect2.get_x(), rect2.get_y());
+	}
+	catch (QuitNow)
+	{
+		cout << "Caught it!\n";
+	}
+}
+
+void GameWindowText::showImage(IplImage *image) {
+	picture2.showImage(image);
 }
 

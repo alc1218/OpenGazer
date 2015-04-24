@@ -199,3 +199,5 @@ void normalizeGrayScaleImage(IplImage *image, double standard_mean = 127, double
 void normalizeGrayScaleImage2(IplImage *image, double standard_mean = 127, double standard_std = 50);
 
 void printMat(CvMat* mat);
+
+void printVectorOfVectors(vector<vector<int> > v) ;

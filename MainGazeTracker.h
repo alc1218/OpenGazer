@@ -91,10 +91,13 @@ class MainGazeTracker {
 	bool videooverlays;
 	long totalframecount;
 	bool recording;
+    bool fromvideofile;
 	vector<Command> commands;
 	int commandindex;
 
-	GameWindow* game_win;
+    bool pointsSelected;
+
+    GameWindow* game_win;
 //    StateMachine<void> statemachine;
 
  public:	

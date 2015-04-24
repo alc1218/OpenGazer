@@ -60,8 +60,12 @@ void TrackingSystem::doprocessing(const IplImage *frame,
     cvConvertScale(eyeGraySegmented, eyeGraySegmented_float);
     cvConvertScale(eyeGraySegmented_left, eyeGraySegmented_left_float);
 
-    gazetracker.update(eyeGraySegmented_float, eyex.eyegrey.get(), *eyex.vector_horizontal, *eyex.vector_vertical);
-    gazetracker.update_left(eyeGraySegmented_left_float, eyex.eyegrey_left.get(), *eyex.vector_horizontal_left, *eyex.vector_vertical_left);
+    cout << "HELLO" << endl;
+
+    gazetracker.update(eyeGraySegmented_float, eyex.eyegrey.get(), *eyex.histPositionSegmentedPixels );
+    gazetracker.update_left(eyeGraySegmented_left_float, eyex.eyegrey_left.get(), *eyex.histPositionSegmentedPixels_left);
+
+    cout << "HELLO3" << endl;
 
     //gazetracker.update(eyex.eyefloat.get(), eyex.eyegrey.get(), *eyex.vector_horizontal, *eyex.vector_vertical);
     //gazetracker.update_left(eyex.eyefloat_left.get(), eyex.eyegrey_left.get(), *eyex.vector_horizontal_left, *eyex.vector_vertical_left);
@@ -69,6 +73,8 @@ void TrackingSystem::doprocessing(const IplImage *frame,
     displayeye(image);
     tracker.draw(image);
     headtracker.draw(image);
+
+    cout << "HELLO4" << endl;
 
 }
 }

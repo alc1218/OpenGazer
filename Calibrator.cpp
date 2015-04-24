@@ -1,4 +1,5 @@
 #include "Calibrator.h"
+#include <fstream>
 
 /*
 std::vector<int> magic_function(std::vector<int> res, std::vector<int> vectorX) {
@@ -89,11 +90,14 @@ Calibrator::Calibrator(const int &framecount,
                int dwelltime): 
     MovingTarget(framecount, points, pointer, dwelltime),
     trackingsystem(trackingsystem),
-    
-    vectorOfVectors_horizontal(new vector<vector<int> >), 
-    vectorOfVectors_vertical(new vector<vector<int> >), 
-    vectorOfVectors_horizontal_left(new vector<vector<int> >), 
-    vectorOfVectors_vertical_left(new vector<vector<int> >)
+
+    vectorOfVectors_horizontal(new vector<vector<int> >),
+    vectorOfVectors_horizontal_left(new vector<vector<int> >),
+    vectorOfVectors_vertical(new vector<vector<int> >),
+    vectorOfVectors_vertical_left(new vector<vector<int> >),
+
+    histPositionSegmentedPixels(new vector<vector<vector<int> > >),
+    histPositionSegmentedPixels_left(new vector<vector<vector<int> > >)
 
 {
     trackingsystem->gazetracker.clear();
@@ -103,6 +107,8 @@ Calibrator::Calibrator(const int &framecount,
 
 void Calibrator::process() {
     static int dummy = 0;
+
+    cout << "Calibrator process()" << endl;
     
     if (active()) {
         int id = getPointNo();
@@ -152,6 +158,7 @@ void Calibrator::process() {
 
             */
 
+    cout << "Calibrator process() dwelltime-1" << endl;
             int sizeVectorOfVectors = vectorOfVectors_horizontal->size();
 
             for (int i = sizeVectorOfVectors-1; i > getPointNo(); i--) {
@@ -180,6 +187,7 @@ void Calibrator::process() {
                 vectorOfVectors_vertical_left->pop_back();
 
             }
+    cout << "Calibrator process() for 2" << endl;
 
             for (int j = 0; j < vectorOfVectors_horizontal->operator[](getPointNo()).size(); j++) {
 
@@ -187,6 +195,7 @@ void Calibrator::process() {
                 vectorOfVectors_horizontal_left->operator[](getPointNo()).operator[](j) = floor(vectorOfVectors_horizontal_left->operator[](getPointNo()).operator[](j) / (sizeVectorOfVectors - getPointNo()));
             }
 
+    cout << "Calibrator process() for 3" << endl;
             for (int j = 0; j < vectorOfVectors_vertical->operator[](getPointNo()).size(); j++) {
 
                 vectorOfVectors_vertical->operator[](getPointNo()).operator[](j) = floor(vectorOfVectors_vertical->operator[](getPointNo()).operator[](j) / (sizeVectorOfVectors - getPointNo()));
@@ -194,60 +203,49 @@ void Calibrator::process() {
             
             }
 
+    cout << "Calibrator process() resto" << endl;
+            std::vector<std::vector<int> > AUX_POSITION_VECTOR;
+
+    cout << "Calibrator process() resto 2" << endl;
+            trackingsystem->eyex.extractFeatures.SortHistogram(&(vectorOfVectors_horizontal->operator[](getPointNo())), &(vectorOfVectors_vertical->operator[](getPointNo())), &AUX_POSITION_VECTOR);
+
+    cout << "Calibrator process() resto 3" << endl;
+            histPositionSegmentedPixels->push_back(AUX_POSITION_VECTOR);
+
+    cout << "Calibrator process() resto 4" << endl;
+            std::vector<std::vector<int> > AUX_POSITION_VECTOR_LEFT;
+
+    cout << "Calibrator process() resto 5" << endl;
+            trackingsystem->eyex.extractFeatures.SortHistogram(&(vectorOfVectors_horizontal_left->operator[](getPointNo())), &(vectorOfVectors_vertical_left->operator[](getPointNo())), &AUX_POSITION_VECTOR_LEFT);
+
+    cout << "Calibrator process() resto 6" << endl;
+            histPositionSegmentedPixels_left->push_back(AUX_POSITION_VECTOR_LEFT);
+
             /*
-                std::vector<int> result;
-
-                it = vectorOfVectors_horizontal->operator[](i).begin();
-
-                std::transform(vectorOfVectors_horizontal->operator[](getPointNo()).begin(), vectorOfVectors_horizontal->operator[](getPointNo()).end(), vectorOfVectors_horizontal->operator[](i).begin(), 
-                   std::back_inserter(result), std::plus<int>());
-
-                vectorOfVectors_horizontal->operator[](getPointNo()).assign(it, vectorOfVectors_horizontal->operator[](i).end());
-
-                vectorOfVectors_horizontal->pop_back();
-
-            }
-
-            */
-            
-/*
-
-            for (int j = 0; j < vectorOfVectors_horizontal->operator[](0).size(); j++){
-                
-                cout << "vectorOfVectors_horizontal[" << j << "]: " << vectorOfVectors_horizontal->operator[](getPointNo()).operator[](j) << endl;
-                cout << "vectorOfVectors_horizontal_left[" << j << "]: " << vectorOfVectors_horizontal_left->operator[](getPointNo()).operator[](j) << endl;
-                
-            }
-            
-            cin.get();
-
-            for (int j = 0; j < vectorOfVectors_vertical->operator[](0).size(); j++){
-                
-                cout << "vectorOfVectors_vertical[" << j << "]: " << vectorOfVectors_vertical->operator[](getPointNo()).operator[](j) << endl;
-                cout << "vectorOfVectors_vertical_left[" << j << "]: " << vectorOfVectors_vertical_left->operator[](getPointNo()).operator[](j) << endl;
-                
-            }
-            
-            cin.get();
-
-*/
-
-
-            //trackingsystem->gazetracker.regression.AddSample(points[id], vectorOfVectors_horizontal->operator[](getPointNo()), vectorOfVectors_vertical->operator[](getPointNo()));
-
             trackingsystem->gazetracker.
             addExemplar(points[id], averageeye->getMean().get(),
                     trackingsystem->eyex.eyegrey.get(), 
                     vectorOfVectors_horizontal->operator[](getPointNo()), vectorOfVectors_vertical->operator[](getPointNo()));
+            */
 
-
-            //trackingsystem->gazetracker.regression.AddSample(points[id], vectorOfVectors_horizontal_left->operator[](getPointNo()), vectorOfVectors_vertical_left->operator[](getPointNo()));
+    cout << "Calibrator process() add exemplar" << endl;
+            trackingsystem->gazetracker.
+            addExemplar(points[id], averageeye->getMean().get(),
+                    trackingsystem->eyex.eyegrey.get(), 
+                    histPositionSegmentedPixels->operator[](getPointNo()));
 
             // ONUR DUPLICATED CODE
+            /*
             trackingsystem->gazetracker.
             addExemplar_left(points[id], averageeye_left->getMean().get(),
                     trackingsystem->eyex.eyegrey_left.get(), 
                     vectorOfVectors_horizontal_left->operator[](getPointNo()), vectorOfVectors_vertical_left->operator[](getPointNo()));
+            */
+
+            trackingsystem->gazetracker.
+            addExemplar_left(points[id], averageeye_left->getMean().get(),
+                    trackingsystem->eyex.eyegrey_left.get(), 
+                    histPositionSegmentedPixels_left->operator[](getPointNo()));
 
             cout << "Puntos: " << points[getPointNo()].x << ", " << points[getPointNo()].y << endl;
 
@@ -274,7 +272,9 @@ void Calibrator::process() {
             //}
         }
     }
+    cout << "Calibrator process() end" << endl;
     MovingTarget::process();
+    cout << "MovingTarget process() end" << endl;
 }
 
 const Point Calibrator::defaultpointarr[] = {Point(0.5, 0.5), 

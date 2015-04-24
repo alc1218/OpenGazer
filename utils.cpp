@@ -52,6 +52,9 @@ void mapToVideoCoordinates(Point monitor2point, double resolution, Point& videoP
 		monitor1geometry.set_height(1080);
 	}
 	
+	monitor2geometry.set_width(1280);
+	monitor2geometry.set_height(777);
+	
 	if(reverse_x) {
 		videoPoint.x = monitor1geometry.get_width() - (monitor2point.x / monitor2geometry.get_width()) * monitor1geometry.get_width();	
 	}
@@ -202,4 +205,16 @@ void printMat(CvMat* mat)
     }
 
     printf("\n");
+}
+
+
+void printVectorOfVectors(vector<vector<int> > v) {
+	for(int i=0; i<v.size(); i++) {
+		for(int j=0; j<v[i].size(); j++) {
+			cout << (v[i])[j] << ", ";
+		}
+		cout << endl;
+	}
+
+	cout << endl << endl;
 }

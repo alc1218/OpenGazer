@@ -7,6 +7,29 @@
 #include "utils.h"
 #include "GraphicalPointer.h"
 
+class ImageArea: public Gtk::DrawingArea {
+    //friend class GameWindowText;
+ public:
+
+    ImageArea();
+    virtual ~ImageArea();
+	void showImage(IplImage *image); 
+};
+
+class GameWindowText: public Gtk::Window {
+ protected:
+  //Member widgets:
+    //Gtk::Button calibratebutton, loadbutton, savebutton, clearbutton, choosebutton;
+    Gtk::VBox vbox2;
+    //Gtk::HBox buttonbar;
+
+ public:
+	//scoped_ptr<IplImage> canvas;
+    ImageArea picture2;
+	GameWindowText();
+	void showImage(IplImage *image);
+};
+
 class GameArea: public Gtk::DrawingArea {
     friend class GameWindow;
  public:
@@ -15,6 +38,7 @@ class GameArea: public Gtk::DrawingArea {
 	WindowPointer* calibrationPointer;
 	IplImage* repositioningImage;
 	IplImage* canvas;
+	GameWindowText* secondWindow;
 
     GameArea(TrackerOutput* op);
     virtual ~GameArea();
@@ -30,6 +54,9 @@ class GameArea: public Gtk::DrawingArea {
 	IplImage* canvas_resized;
 	IplImage* picture_resized;
 	IplImage* text_resized;
+	IplImage* interface2;
+	IplImage* picture_resized2;
+	IplImage* text_resized2;
 	IplImage* frog;
 	IplImage* target;
 	//IplImage* black;
@@ -76,3 +103,4 @@ class GameWindow: public Gtk::Window {
 	void setRepositioningImage(IplImage* image);
     void changeWindowColor(double illuminationLevel);
 };
+

@@ -33,12 +33,24 @@ og_objects = $(patsubst %.cpp,%.o,$(og_sources))
 test_sources = tester.cpp Calibrator.cpp GazeTrackerGtk.cpp HeadTracker.cpp LeastSquares.cpp EyeExtractor.cpp GazeTracker.cpp MainGazeTracker.cpp OutputMethods.cpp PointTracker.cpp FaceDetector.cpp GazeArea.cpp TrackingSystem.cpp GtkStore.cpp Containers.cpp GraphicalPointer.cpp Point.cpp utils.cpp BlinkDetector.cpp FeatureDetector.cpp mir.cpp GameWindow.cpp ExtractEyeFeaturesSegmentation.cpp EyeTemplate.cpp
 test_objects = $(patsubst %.cpp,%.o,$(test_sources))
 
-all: opengazer tester
+test2_sources = TesterCenterOfTheEye.cpp Calibrator.cpp GazeTrackerGtk.cpp HeadTracker.cpp LeastSquares.cpp EyeExtractor.cpp GazeTracker.cpp MainGazeTracker.cpp OutputMethods.cpp PointTracker.cpp FaceDetector.cpp GazeArea.cpp TrackingSystem.cpp GtkStore.cpp Containers.cpp GraphicalPointer.cpp Point.cpp utils.cpp BlinkDetector.cpp FeatureDetector.cpp mir.cpp GameWindow.cpp ExtractEyeFeaturesSegmentation.cpp EyeTemplate.cpp
+test2_objects = $(patsubst %.cpp,%.o,$(test2_sources))
+
+test3_sources = TesterCenterOfTheEye_HARDPARAMETRIZATION.cpp Calibrator.cpp GazeTrackerGtk.cpp HeadTracker.cpp LeastSquares.cpp EyeExtractor.cpp GazeTracker.cpp MainGazeTracker.cpp OutputMethods.cpp PointTracker.cpp FaceDetector.cpp GazeArea.cpp TrackingSystem.cpp GtkStore.cpp Containers.cpp GraphicalPointer.cpp Point.cpp utils.cpp BlinkDetector.cpp FeatureDetector.cpp mir.cpp GameWindow.cpp ExtractEyeFeaturesSegmentation.cpp EyeTemplate.cpp EyeTemplateTEST.cpp
+test3_objects = $(patsubst %.cpp,%.o,$(test3_sources))
+
+all: opengazer tester tester2 tester3
 
 opengazer: 	$(og_objects)
 	$(CMD_PREFIX)g++ -o $@ $^ `pkg-config cairomm-1.0 opencv gtkmm-2.4 --libs`  $(LINKER) $(CPPFLAGS)
 
 tester: 	$(test_objects)
+	$(CMD_PREFIX)g++ -o $@ $^ `pkg-config cairomm-1.0 opencv gtkmm-2.4 --libs`  $(LINKER) $(CPPFLAGS)
+
+tester2: 	$(test2_objects)
+	$(CMD_PREFIX)g++ -o $@ $^ `pkg-config cairomm-1.0 opencv gtkmm-2.4 --libs`  $(LINKER) $(CPPFLAGS)
+
+tester3: 	$(test3_objects)
 	$(CMD_PREFIX)g++ -o $@ $^ `pkg-config cairomm-1.0 opencv gtkmm-2.4 --libs`  $(LINKER) $(CPPFLAGS)
 
 %.o.depends: %.cpp

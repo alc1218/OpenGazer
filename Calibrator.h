@@ -60,6 +60,9 @@ class Calibrator: public MovingTarget {
                                                 vectorOfVectors_horizontal_left, vectorOfVectors_vertical_left;
 
 
+    scoped_ptr<std::vector<std::vector<std::vector<int> > > > histPositionSegmentedPixels, histPositionSegmentedPixels_left;
+
+
 public:
     static vector<Point> defaultpoints;
     static vector<Point> loadpoints(istream& in);

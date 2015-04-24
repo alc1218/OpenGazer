@@ -3,9 +3,8 @@
 
 #define VECTOR_SIZE 1
 
-class EyeTemplate {
+class EyeTemplateTEST {
 
-    int sizeImageDisk;
     IplImage* elipse_gray;
     IplImage* irisTemplateDisk[VECTOR_SIZE];
     IplImage* irisTemplate;
@@ -17,9 +16,9 @@ class EyeTemplate {
     CvScalar color, a[VECTOR_SIZE];
 
 public:
-    void setSize(IplImage* eyesize);
-    Point* ProcessToExtractFeatures(IplImage*, IplImage*);
+    void setSize(IplImage* eyesize, float, int);
+    Point* ProcessToExtractFeatures(IplImage*, IplImage*, float, int, int);
     IplImage* ConstructTemplateDisk(int);
-    IplImage* CreateTemplateGausian2D(IplImage*);
+    IplImage* CreateTemplateGausian2D(IplImage*, float);
 
 };

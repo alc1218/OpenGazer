@@ -3,6 +3,8 @@
 #include <opencv/highgui.h>
 #include <fstream>
 
+#define	THRESHOLD_PROBABILITY	0.6
+
 
 PointTracker::PointTracker(const CvSize &size):
     flags(CV_LKFLOW_INITIAL_GUESSES),
@@ -114,22 +116,64 @@ void PointTracker::synchronizepoints() {
 
     if(lastpoints.size() >= 8 && template_left == NULL) {
     	cout << "EXTRACT TEMPLATE LEFT"<< endl;
-		cvSetImageROI(grey.get(), cvRect(lastpoints[0].x - 15, lastpoints[0].y - 15, 30, 30));
+    	cout << "LAST POINT[0] COORDS: " << lastpoints[0].x << ", " << lastpoints[0].y << endl;
 
-		template_left = cvCreateImage(cvGetSize(grey.get()),IPL_DEPTH_8U,1);
-		cvCopy(grey.get(), template_left);
+		//cvSaveImage("aa_template_grey.png", grey.get());
+		//cvSaveImage("aa_template_origgrey.png", orig_grey.get());
+		cvSetImageROI(orig_grey.get(), cvRect(lastpoints[0].x - 15, lastpoints[0].y - 15, 30, 30));
+
+		template_left = cvCreateImage(cvGetSize(orig_grey.get()),IPL_DEPTH_8U,1);
+
+    	cvCopy(orig_grey.get(), template_left);
+
+		//cvSaveImage("aa_template_left.png", template_left);
+		//cvSaveImage("aa_template_grey_ROI.png", orig_grey.get());
 		
-		cvResetImageROI(grey.get());
+		cvResetImageROI(orig_grey.get());
+
+
+		static int frame_number_left_init = 0;
+
+		string file_left_init;
+	    char buffer_left_init [100];
+
+	    cout << "SAVING IMAGES Template Right" << endl;
+	    file_left_init=sprintf (buffer_left_init, "imgs/TemplateLeft/INIT_%d.jpg", frame_number_left_init);
+
+	    cvSaveImage(buffer_left_init, template_left);
+
+		frame_number_left_init++;
+
 	}
 
 	if(lastpoints.size() >= 8 && template_right == NULL) {
     	cout << "EXTRACT TEMPLATE RIGHT"<< endl;
-		cvSetImageROI(grey.get(), cvRect(lastpoints[1].x - 15, lastpoints[1].y - 15, 30, 30));
+    	cout << "LAST POINT[1] COORDS: " << lastpoints[1].x << ", " << lastpoints[1].y << endl;
+		cvSetImageROI(orig_grey.get(), cvRect(lastpoints[1].x - 15, lastpoints[1].y - 15, 30, 30));
 
-		template_right = cvCreateImage(cvGetSize(grey.get()),IPL_DEPTH_8U,1);
-		cvCopy(grey.get(), template_right);
+		template_right = cvCreateImage(cvGetSize(orig_grey.get()),IPL_DEPTH_8U,1);
+		cvCopy(orig_grey.get(), template_right);
+
+		//cvSaveImage("aa_template_right.png", template_right);
 		
-		cvResetImageROI(grey.get());
+		cvResetImageROI(orig_grey.get());
+
+
+
+		static int frame_number_right_init = 0;
+
+		string file_right_init;
+	    char buffer_right_init [100];
+
+	    cout << "SAVING IMAGES Template Right" << endl;
+	    file_right_init=sprintf (buffer_right_init, "imgs/TemplateRight/INIT_%d.jpg", frame_number_right_init);
+
+	    cvSaveImage(buffer_right_init, template_right);
+
+	    frame_number_right_init++;
+
+	    //cin.get();
+
 	}
 
 }
@@ -145,8 +189,8 @@ void PointTracker::addtracker(const Point &point) {
 }
 
 void PointTracker::cleartrackers() {
-	template_left = NULL;
-	template_right = NULL;
+	//template_left = NULL;
+	//template_right = NULL;
     currentpoints.clear();
     synchronizepoints();
 }
@@ -158,9 +202,10 @@ void PointTracker::normalizeOriginalGrey() {
 }
 void PointTracker::track(const IplImage *frame, int pyramiddepth) 
 {
+
 	try {
-	    assert(lastpoints.size() == currentpoints.size());
-	    assert(origpoints.size() == currentpoints.size());
+	    //assert(lastpoints.size() == currentpoints.size());
+	    //assert(origpoints.size() == currentpoints.size());
 	    status.resize(currentpoints.size());
 
 	    cvCvtColor(frame, grey.get(), CV_BGR2GRAY );
@@ -174,7 +219,10 @@ void PointTracker::track(const IplImage *frame, int pyramiddepth)
 
 		// Apply median filter of 5x5
 	    cvSmooth(grey.get(), grey.get(), CV_MEDIAN, 5);
-	
+
+		cout << currentpoints.size() << ", " << lastpoints.size() << ", " << origpoints.size() << endl;
+
+
 
 	    lastpoints = currentpoints;
 	    
@@ -192,6 +240,11 @@ void PointTracker::track(const IplImage *frame, int pyramiddepth)
 
 		//	}
 
+
+
+			cout << "eye origpoints: " << origpoints[0].x << ", " << origpoints[0].y << endl;
+			cout << "eye currentpoints: " << currentpoints[0].x << ", " << currentpoints[0].y << endl;
+
 			if(status.size() > 2) {  
 				IplImage* aux = NULL;
 
@@ -201,7 +254,9 @@ void PointTracker::track(const IplImage *frame, int pyramiddepth)
 
 				// LEFT EYE POINT
 				if(template_left != NULL) {
-
+					if(template_right != NULL) {
+						cout << "BOTH TEMPLATES ARE FINE!!" << endl;
+					}
 
 	// TODO ARCADI TRACKING PUT TEMPLATE EXTRACTION CODE
 
@@ -219,10 +274,32 @@ void PointTracker::track(const IplImage *frame, int pyramiddepth)
 
 					cvMinMaxLoc(Matches_current, &MinVal_current, &MaxVal_current, &MinLoc_current, &MaxLoc_current);
 
+					if (MaxVal_current > THRESHOLD_PROBABILITY) {
+
+						currentpoints[0].x = MaxLoc_current.x + currentpoints[0].x - 30 + template_left->width / 2;
+						currentpoints[0].y = MaxLoc_current.y + currentpoints[0].y - 30 + template_left->height / 2;
 
 
-					currentpoints[0].x = MaxLoc_current.x + currentpoints[0].x - 30 + template_left->width / 2;
-					currentpoints[0].y = MaxLoc_current.y + currentpoints[0].y - 30 + template_left->height / 2;
+						cvSetImageROI(grey.get(), cvRect(currentpoints[0].x - 15, currentpoints[0].y - 15, 30, 30));
+
+						static int frame_number = 0;
+
+						string fileSS;
+					    char bufferSS [100];
+
+					    cout << "SAVING IMAGES" << endl;
+					    fileSS=sprintf (bufferSS, "imgs/TemplateLeft/%d.jpg", frame_number);
+
+					    cvSaveImage(bufferSS, grey.get());
+
+					    frame_number++;
+
+						//cvCopy(grey.get(), template_left);
+
+						cvResetImageROI(grey.get());
+
+					}
+
 					//status[0] = 1;
 		    		// TODO ARCADI TRACK
 		    		// currentpoints (index 0 and 1) contains the positions for eye corner points
@@ -250,14 +327,47 @@ void PointTracker::track(const IplImage *frame, int pyramiddepth)
 
 					cvMinMaxLoc(Matches_current, &MinVal_current, &MaxVal_current, &MinLoc_current, &MaxLoc_current);
 
+					if (MaxVal_current > THRESHOLD_PROBABILITY) {
 
-					currentpoints[1].x = MaxLoc_current.x + currentpoints[1].x - 30 + template_right->width / 2;
-					currentpoints[1].y = MaxLoc_current.y + currentpoints[1].y - 30 + template_right->height / 2;
+						currentpoints[1].x = MaxLoc_current.x + currentpoints[1].x - 30 + template_right->width / 2;
+						currentpoints[1].y = MaxLoc_current.y + currentpoints[1].y - 30 + template_right->height / 2;
+
+						
+
+
+
+						cvSetImageROI(grey.get(), cvRect(currentpoints[1].x - 15, currentpoints[1].y - 15, 30, 30));
+
+						//cvCopy(grey.get(), template_right);
+						
+						
+
+						static int frame_number_right = 0;
+
+						string file_right;
+					    char buffer_right [100];
+
+					    cout << "SAVING IMAGES Template Right" << endl;
+					    file_right=sprintf (buffer_right, "imgs/TemplateRight/%d.jpg", frame_number_right);
+
+					    cvSaveImage(buffer_right, grey.get());
+
+					    frame_number_right++;
+
+			    	    //cin.get();
+
+
+
+			    	    cvResetImageROI(grey.get());
+
+					}
+
 					//status[1] = 1;
 		    		// TODO ARCADI TRACK
 		    		// currentpoints (index 0 and 1) contains the positions for eye corner points
 		    		// calculate the best matches around these two points using the two templates saved in syncpoints
 		    		// update the corresponding positions in currentpoints with the newly calculated positions 
+
 				}
 			}
 
@@ -266,7 +376,11 @@ void PointTracker::track(const IplImage *frame, int pyramiddepth)
 
 	    cvCopy(grey.get(), last_grey.get(), 0);
 	    cvCopy(pyramid.get(), last_pyramid.get(), 0);
-	    //lastpoints = currentpoints;
+
+
+		cout << currentpoints.size() << ", " << lastpoints.size() << ", " << origpoints.size() << endl;
+		cout << "EIII2" << endl;
+
 	}
     catch (std::exception &ex) {
 		cout << ex.what() << endl;

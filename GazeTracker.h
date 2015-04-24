@@ -4,7 +4,8 @@
 #define SIZESAMPLE 192
 
 typedef MeanAdjustedGaussianProcess<SharedImage> ImProcess;
-typedef MeanAdjustedGaussianProcess<vector<int> > HistProcess;	// TODO ARCADI CONTINUE
+//typedef MeanAdjustedGaussianProcess<vector<int> > HistProcess;  // TODO ARCADI CONTINUE
+typedef MeanAdjustedGaussianProcess<vector<vector<int> > > HistProcess;  // TODO ARCADI CONTINUE
 
 
 const int nn_eyewidth = 16;
@@ -22,11 +23,10 @@ struct CalTarget {
     Point point;
     SharedImage image, origimage;
 
-    vector<int> vector_horizontal, vector_vertical;
+    std::vector<std::vector<int> > vector_h_v_combined;
 
     CalTarget();
-    CalTarget(Point point, const IplImage* image, const IplImage* origimage, vector<int> vector_horizontal,
-			      vector<int> vector_vertical);
+    CalTarget(Point point, const IplImage* image, const IplImage* origimage, std::vector<std::vector<int> > histPositionSegmentedPixels);
 
     void save(CvFileStorage* out, const char* name=NULL);
     void load(CvFileStorage* in, CvFileNode *node);
@@ -106,7 +106,14 @@ class GazeTracker {
 				     const SharedImage& im2);
 
     static double histDistance(vector<int> hist_horizontal, vector<int> hist_vertical);
-    static double covariancefunction_hist(const vector<int>& hist_horizontal, const vector<int>& hist_vertical);
+    static double covariancefunction_hist(const vector<int> & hist_horizontal, const vector<int> & hist_vertical);
+
+    static double histDistancePosition_x(vector<vector<int> > hist_horizontal, vector<vector<int> > hist_vertical);
+    static double covariancefunction_hist_position_x(const vector<vector<int> > & hist_horizontal, const vector<vector<int> > & hist_vertical);
+
+    static double histDistancePosition_y(vector<vector<int> > hist_horizontal, vector<vector<int> > hist_vertical);
+    static double covariancefunction_hist_position_y(const vector<vector<int> > & hist_horizontal, const vector<vector<int> > & hist_vertical);
+
 
     void updateGPs(void);
 	void updateGPs_left(void);
@@ -125,11 +132,9 @@ public:
 
     void clear();
     void addExemplar(Point point, 
-		     const IplImage *eyefloat, const IplImage *eyegrey, vector<int> vector_horizontal,
-			      vector<int> vector_vertical);
+		     const IplImage *eyefloat, const IplImage *eyegrey, std::vector<std::vector<int> > histPositionSegmentedPixels);
     void addExemplar_left(Point point, 
-		     const IplImage *eyefloat, const IplImage *eyegrey, vector<int> vector_horizontal_left,
-			      vector<int> vector_vertical_left);
+		     const IplImage *eyefloat, const IplImage *eyegrey, std::vector<std::vector<int> > histPositionSegmentedPixels_left);
 	// Neural network
 	void addSampleToNN(Point point, 
 			const IplImage *eyefloat, const IplImage *eyegrey);
@@ -147,10 +152,8 @@ public:
     void save(CvFileStorage *out, const char *name);
     void load(void);
     void load(CvFileStorage *in, CvFileNode *node);
-    void update(const IplImage *image, const IplImage *eyegrey, vector<int> vector_horizontal,
-			      vector<int> vector_vertical);
-    void update_left(const IplImage *image, const IplImage *eyegrey, vector<int> vector_horizontal_left,
-			      vector<int> vector_vertical_left);
+    void update(const IplImage *image, const IplImage *eyegrey, vector<vector<int> > vector_h_v_combined);
+    void update_left(const IplImage *image, const IplImage *eyegrey, vector<vector<int> > vector_h_v_combined);
     int getTargetId(Point point);
 	void calculateTrainingErrors();
 	void printTrainingErrors();

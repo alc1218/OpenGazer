@@ -30,15 +30,16 @@ void EyeExtractor::processEye(void) {
 	blinkdet.update(eyefloat);
 
     eyeGraySegmented = extractFeatures.processToExtractFeatures(   eyegrey.get(), eyeimage.get(), histogram_horizontal, 
-                                                histogram_vertical, vector_horizontal.get(), vector_vertical.get());
+                                                histogram_vertical, vector_horizontal.get(), vector_vertical.get(), histPositionSegmentedPixels);
 
     
+    cout << "Size of vector[4]: " << histPositionSegmentedPixels->size() << endl;
 
 	//cvConvertScale(eyegrey_left.get(), temp2.get());
 	blinkdet_left.update(eyefloat_left);
 	
     eyeGraySegmented_left = extractFeatures.processToExtractFeatures(   eyegrey_left.get(), eyeimage_left.get(), histogram_horizontal_left, 
-                                                histogram_vertical_left, vector_horizontal_left.get(), vector_vertical_left.get());
+                                                histogram_vertical_left, vector_horizontal_left.get(), vector_vertical_left.get(), histPositionSegmentedPixels_left);
 
 	if(blinkdet.getState() >= 2 && blinkdet_left.getState() >= 2) {
 		blink = true;
@@ -77,6 +78,9 @@ EyeExtractor::EyeExtractor(const PointTracker &tracker):
     vector_vertical_left(new vector<int> (eyesize.height,0)),
     eyeGraySegmented_left(cvCreateImage( eyesize, IPL_DEPTH_32F, 1 )),
 	blink(false),
+
+    histPositionSegmentedPixels (new vector<vector<int> >),
+    histPositionSegmentedPixels_left (new vector<vector<int> >),
 
     extractFeatures(eyesize)
 {

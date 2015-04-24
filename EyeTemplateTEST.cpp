@@ -1,22 +1,19 @@
-#include "EyeTemplate.h"
+#include "EyeTemplateTEST.h"
 #include <math.h>
 #define HORIZONTAL_BIN_SIZE 128
 #define VERTICAL_BIN_SIZE 64
 #define ExtraSize 0
-#define SmoothBlockSize 29
+//#define SmoothBlockSize 29
 
 static std::vector<int> vector_static_horizontal(HORIZONTAL_BIN_SIZE, 0);
 static std::vector<int> vector_static_vertical(VERTICAL_BIN_SIZE, 0);
 
-void EyeTemplate::setSize(IplImage* eyesize)
+void EyeTemplateTEST::setSize(IplImage* eyesize, float sigma, int sizeImageDisk)
 {
 
 	IplImage* elipse_rgb = (IplImage*) cvLoadImage("./elipse.jpg");
 	elipse_gray = cvCreateImage(cvGetSize(elipse_rgb),IPL_DEPTH_8U,1);
 	cvCvtColor(elipse_rgb,elipse_gray,CV_RGB2GRAY);
-
-	sizeImageDisk = 5; 
-	
 
 	for (int j=0; j<size(irisTemplateDisk); j++){
 		irisTemplateDisk[j] = ConstructTemplateDisk(sizeImageDisk + j);
@@ -24,17 +21,17 @@ void EyeTemplate::setSize(IplImage* eyesize)
 		Gaussian2D[j] = cvCreateImage(cvSize(eyesize->width - irisTemplateDisk[j]->width + 1, eyesize->height - irisTemplateDisk[j]->height + 1), IPL_DEPTH_32F, 1);
 
 		/* Gaussian2D[j] = TODO ONUR UNCOMMENTED, NOT NECESSARY */
-		CreateTemplateGausian2D(Gaussian2D[j]);
+		CreateTemplateGausian2D(Gaussian2D[j], sigma);
 	}
 }
 
-Point* EyeTemplate::ProcessToExtractFeatures(	IplImage* Temporary, IplImage* TemporaryColor){
+Point* EyeTemplateTEST::ProcessToExtractFeatures(	IplImage* Temporary, IplImage* TemporaryColor, float sigma, int SmoothBlockSize, int sizeImageDisk){
 
-	setSize(Temporary);
+	setSize(Temporary, sigma, sizeImageDisk);
 
 	IplImage* Temporary_elipsed = cvCreateImage(cvGetSize(Temporary),IPL_DEPTH_8U,1);
 
-	cout << "Size of Temporary_elipsed: " << Temporary_elipsed->width << ", " << Temporary_elipsed->height << endl;
+	//cout << "Size of Temporary_elipsed: " << Temporary_elipsed->width << ", " << Temporary_elipsed->height << endl;
 
 
 	//cvRectangle(Temporary_elipsed, cvPoint(0,0), cvPoint(Temporary_elipsed->width,Temporary_elipsed->height), cvScalar(100,100,100), -1, 8, 0);
@@ -83,8 +80,8 @@ Point* EyeTemplate::ProcessToExtractFeatures(	IplImage* Temporary, IplImage* Tem
 
 	}
 
-	cout << "WINNER: " << winner + 1 << ", " << MaxLoc[winner].x + (SmoothBlockSize - 1)/2 << ", " << MaxLoc[winner].y + (SmoothBlockSize - 1)/2 << endl;
-	cout << "DIST: " << dist << endl;
+	//cout << "WINNER: " << winner + 1 << ", " << MaxLoc[winner].x + (SmoothBlockSize - 1)/2 << ", " << MaxLoc[winner].y + (SmoothBlockSize - 1)/2 << endl;
+	//cout << "DIST: " << dist << endl;
 
 	double maxProbability = (double) MaxVal[0];
 
@@ -105,28 +102,9 @@ Point* EyeTemplate::ProcessToExtractFeatures(	IplImage* Temporary, IplImage* Tem
 
 
 
-	cvRectangle(
-	  Temporary,
-	  cvPoint(MaxLoc[i].x + (SmoothBlockSize - 1)/2 -1, MaxLoc[i].y + (SmoothBlockSize - 1)/2 -1),
-	  cvPoint(MaxLoc[i].x + (SmoothBlockSize - 1)/2 +1, MaxLoc[i].y + (SmoothBlockSize - 1)/2 +1),
-	  CV_RGB(0, 255, 0),
-	  2, 8, 0
-	);
 
 
-
-	static int frame_number_detect_eye = 0;
-
-	string file_detect_eye;
-	char buffer_detect_eye [100];
-
-
-
-    file_detect_eye=sprintf (buffer_detect_eye, "imgs/EyeVideo/%d.jpg", frame_number_detect_eye);
-
-    cvSaveImage(buffer_detect_eye, Temporary);
-
-
+	/*
 
 	double max = -100;
 	double min = 100;
@@ -165,6 +143,11 @@ Point* EyeTemplate::ProcessToExtractFeatures(	IplImage* Temporary, IplImage* Tem
 
 	//cout << "VALOR DE I: " << i << endl;
 
+	static int frame_number_detect_eye = 0;
+
+	string file_detect_eye;
+    char buffer_detect_eye [100];
+
 
     //cout << "SAVING IMAGES Probabilities" << endl;
     file_detect_eye=sprintf (buffer_detect_eye, "imgs/Probabilities/%d.jpg", frame_number_detect_eye);
@@ -172,7 +155,9 @@ Point* EyeTemplate::ProcessToExtractFeatures(	IplImage* Temporary, IplImage* Tem
     cvSaveImage(buffer_detect_eye, MatchesSmoothed[i]);
 
     frame_number_detect_eye++;
-    
+
+    */
+
 
     /*
 
@@ -190,14 +175,12 @@ Point* EyeTemplate::ProcessToExtractFeatures(	IplImage* Temporary, IplImage* Tem
 
 	*/
 
-	cout << "Detected Eye Point: " << MaxLoc[i].x + (SmoothBlockSize - 1)/2 << ", " << MaxLoc[i].y + (SmoothBlockSize - 1)/2 + ExtraSize << endl;
-
 	return new Point(MaxLoc[i].x + (SmoothBlockSize - 1)/2, MaxLoc[i].y + (SmoothBlockSize - 1)/2 + ExtraSize);
 
 	//return new Point(MaxLoc[i].x + irisTemplateDisk[i]->width/2, MaxLoc[i].y + irisTemplateDisk[i]->height/2 + ExtraSize);
 }
 
-IplImage* EyeTemplate::ConstructTemplateDisk(int sizeDisk) {
+IplImage* EyeTemplateTEST::ConstructTemplateDisk(int sizeDisk) {
 
 	CvPoint center;
 	center.x = floor(sizeDisk/2);
@@ -214,14 +197,14 @@ IplImage* EyeTemplate::ConstructTemplateDisk(int sizeDisk) {
 	return irisTemplateDisk;
 }
 
-IplImage* EyeTemplate::CreateTemplateGausian2D(IplImage* Gaussian2D) {
+IplImage* EyeTemplateTEST::CreateTemplateGausian2D(IplImage* Gaussian2D, float sigma) {
 
 	CvPoint center;
 	center.x = floor(Gaussian2D->width/2);
 	center.y = floor(Gaussian2D->height/2);
 
 	float tmp = 0;
-	float sigma = 13;
+	//float sigma = 150;	// With this sigma, the furthest eye pixel (corners) have around 0.94 probability
 	float max_prob = exp( - (0) / (2.0 * sigma * sigma)) / (2.0 * M_PI * sigma * sigma);
 
 	for (int x = 0; x<Gaussian2D->width; x++) {

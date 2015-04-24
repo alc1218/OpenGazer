@@ -7,7 +7,9 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <math.h>
-#define	THRESHOLD	5.0
+#define	THRESHOLD	10.0
+#define	FRAME	10
+
 
 
 class VideoWriter {
@@ -147,7 +149,7 @@ VideoInput::VideoInput(string resolution, string filename, bool dummy):
 		size.height = frame->height;
 		
 		
-		cout << "Successfully resized first frame" << endl;
+		//cout << "Successfully resized first frame" << endl;
 	}
 }
 
@@ -199,7 +201,7 @@ VideoInput::~VideoInput() {
 MainGazeTracker::MainGazeTracker(int argc, char** argv, 
                  const vector<boost::shared_ptr<AbstractStore> >
 				 &stores): 
-    framestoreload(-1), stores(stores), autoreload(false), videooverlays(false), totalframecount(0), recording(false), commandindex(-1)
+    framestoreload(-1), stores(stores), autoreload(false), videooverlays(false), totalframecount(0), recording(false), commandindex(-1), fromvideofile(false)
 //     , statemachine(shared_ptr<AlertWindow>(new AlertWindow("start")))
 {
     CommandLineArguments args(argc, argv);
@@ -259,6 +261,8 @@ MainGazeTracker::MainGazeTracker(int argc, char** argv,
 		commandindex = 0;
 	
 		cout << commands.size() << " commands read." << endl;
+
+		fromvideofile = true;
 	}
 	else {
 		// --resolution parameter
@@ -374,8 +378,10 @@ MainGazeTracker::MainGazeTracker(int argc, char** argv,
 	
 	game_win = new GameWindow (&(tracking->gazetracker.output));
 	game_win->picture.canvas = canvas.get();
+	game_win->hide();
 	game_win->show();
-
+	game_win->present();
+	
     if(videoinput.get()->get_resolution() == 720) {
         repositioning_image = cvCreateImage(cvSize(1280, 720), 8, 3 );
     }
@@ -395,9 +401,14 @@ MainGazeTracker::MainGazeTracker(int argc, char** argv,
 
     autodetectpointscounter = 0;
     cintest = 0;
+    pointsSelected = false;
     cascade_nose = (CvHaarClassifierCascade*) cvLoad("DetectorNose2.xml", 0, 0, 0);
     cascade_eye = (CvHaarClassifierCascade*) cvLoad("DetectorEyes.xml", 0, 0, 0);
     cascade_mouth = (CvHaarClassifierCascade*) cvLoad("DetectorMouth.xml", 0, 0, 0);
+
+	//game_win = new GameWindow (&(tracking->gazetracker.output));
+	//game_win->show();
+	//game_win->present();
 	
 // -------------------------------------------------------------------------
 }
@@ -441,6 +452,8 @@ void MainGazeTracker::choosepoints() {
 		Point nose[2];
 		Point mouth[2];
 		Point eyebrows[2];
+
+		cout << "CHOOSE POINTS" << endl;
 		
 	    if (recording) {
 			*commandoutputfile << totalframecount << " SELECT" << endl;
@@ -487,14 +500,16 @@ void MainGazeTracker::choosepoints() {
 		tracking->tracker.addtracker(eyebrows[1]);
 		
 			
-		cout << "EYES: " << eyes[0] << " + " << eyes[1] << endl;
-		cout << "NOSE: " << nose[0] << " + " << nose[1] << endl;
-		cout << "MOUTH: " << mouth[0] << " + " << mouth[1] << endl;
-		cout << "EYEBROWS: " << eyebrows[0] << " + " << eyebrows[1] << endl;
+		//cout << "EYES: " << eyes[0] << " + " << eyes[1] << endl;
+		//cout << "NOSE: " << nose[0] << " + " << nose[1] << endl;
+		//cout << "MOUTH: " << mouth[0] << " + " << mouth[1] << endl;
+		//cout << "EYEBROWS: " << eyebrows[0] << " + " << eyebrows[1] << endl;
 		
 
 		// Save point selection image 
 		tracking->tracker.save_image();
+
+		//cin.get();
 
 		// Calculate the area containing the face
 		//extract_face_region_rectangle(videoinput->frame, tracking->tracker.getpoints(&PointTracker::lastpoints, true));
@@ -524,70 +539,124 @@ void MainGazeTracker::doprocessing(void) {
     framecount++;
     videoinput->updateFrame();
 
+    // TODO REMOVE
+    //choosepoints();
+
 // ------------------------- TEST ARCADI -----------------------------------
 
-cout << "autodetectpointscounter: " << autodetectpointscounter << endl;
+    static int counter = 0;
 
-	// CODE
-/*
-	vector<char> status = tracking->tracker.status;
+    if(fromvideofile) {
+    	cout << "ARCADI PARTS!!!!!!!!!!!!!" << endl;
 
-	if(status.size()){
+		if (!pointsSelected) {
+		
+			//cout << "autodetectpointscounter: " << autodetectpointscounter << endl;
+	/*
+		// CODE
+		vector<char> status = tracking->tracker.status;
 
-		//cout << "tracking->tracker.lastpoints[0]: " << tracking->tracker.lastpoints[0].x << ", " << tracking->tracker.lastpoints[0].y << endl;
-		//cout << "tracking->tracker.currentpoints[0]: " << tracking->tracker.currentpoints[0].x << ", " << tracking->tracker.currentpoints[0].y << endl;
-		//cout << "distancia euclidea: " << euclideanDistance(tracking->tracker.lastpoints[0], tracking->tracker.currentpoints[0])<< endl;
+		if(status.size()){
 
-		if ((tracking->tracker.countactivepoints() < 5) && (autodetectpointscounter > 20)) {
+			//cout << "tracking->tracker.lastpoints[0]: " << tracking->tracker.lastpoints[0].x << ", " << tracking->tracker.lastpoints[0].y << endl;
+			//cout << "tracking->tracker.currentpoints[0]: " << tracking->tracker.currentpoints[0].x << ", " << tracking->tracker.currentpoints[0].y << endl;
+			//cout << "distancia euclidea: " << euclideanDistance(tracking->tracker.lastpoints[0], tracking->tracker.currentpoints[0])<< endl;
+
+			if ((tracking->tracker.countactivepoints() < 5) && (autodetectpointscounter > 20)) {
+					autodetectpointscounter = 0;
+			}
+
+			if	((euclideanDistance(tracking->tracker.lastpoints[0], tracking->tracker.currentpoints[0]) > THRESHOLD) || 
+				(euclideanDistance(tracking->tracker.lastpoints[1], tracking->tracker.currentpoints[1]) > THRESHOLD)) {
+
 				autodetectpointscounter = 0;
+			}
 		}
-
-		if	((euclideanDistance(tracking->tracker.lastpoints[0], tracking->tracker.currentpoints[0]) > THRESHOLD) || 
-			(euclideanDistance(tracking->tracker.lastpoints[1], tracking->tracker.currentpoints[1]) > THRESHOLD)) {
-
-			autodetectpointscounter = 0;
+		else {
+			//cout << "DOES NOT ENTER IN STATUS IF CONDITION, status.size() = " << status.size() << endl;
 		}
-	}
-	else {
-		//cout << "DOES NOT ENTER IN STATUS IF CONDITION, status.size() = " << status.size() << endl;
-	}
+	*/
+
+
+			if ((tracking->tracker.pointcount() == FRAME + 0) && (autodetectpointscounter > FRAME + 15)) {
+
+				autodetectpointscounter = 0;
+				cout << "RESET POINTS" << endl;
+			}
+
+			if (autodetectpointscounter == FRAME + 5 ) {
+
+				cout << "START CHOOSE POINTS" << endl;
+
+				choosepoints();
+
+				testorigpoints = tracking->tracker.getpoints(&PointTracker::origpoints, true);
+			}
+			else {
+
+			    if (((autodetectpointscounter > FRAME + 5) && (autodetectpointscounter < FRAME + 15))) {
+
+					cout << "START CHOOSE POINTS AGAIN" << endl;
+			    	choosepoints();
+
+			    	testcurrentpoints = tracking->tracker.getpoints(&PointTracker::currentpoints, true);
+			    	if ((testorigpoints.size() != 0) && (testcurrentpoints.size() != 0) && 
+			    		(euclideanDistance(testorigpoints[0], testcurrentpoints[0]) < THRESHOLD) && 
+			    		(euclideanDistance(testorigpoints[1], testcurrentpoints[1]) < THRESHOLD) && 
+			    		(euclideanDistance(testorigpoints[2], testcurrentpoints[2]) < THRESHOLD) && 
+			    		(euclideanDistance(testorigpoints[3], testcurrentpoints[3]) < THRESHOLD)){
+
+			    		autodetectpointscounter++;
+
+			    	}else{
+
+						cout << "DISTANCE IS NOT FINE, RESET POINTS" << endl;
+			    		autodetectpointscounter = 0;
+
+			    		// Aqui falta la inicializacion del estatus!!
+
+			    	}
+
+			    }
+			    else  {
+					cout << "DO NOT CHOOSE AGAIN" << endl;
+			    }
+			}
+
+
+			if (autodetectpointscounter == FRAME + 15) {
+				cout << "POINTS SELECTED FOR SURE" << endl;
+
+				pointsSelected = true;
+			}
+
+		autodetectpointscounter++;
+
+		}
+	}	// end if(!fromvideofile)
+
+/*
+	static int frame_number = 0;
+
+	string fileSS;
+    char bufferSS [100];
+
+    cout << "SAVING IMAGES" << endl;
+    fileSS=sprintf (bufferSS, "imgs/FaceUser_%d.jpg", frame_number);
+
+    cvSaveImage(bufferSS, canvas.get());
+
+    frame_number++;
+
 */
-	
-	if (autodetectpointscounter == 5 ) {
 
-		choosepoints();
-		testorigpoints = tracking->tracker.getpoints(&PointTracker::origpoints, true);
-	}
-	else {
-
-	    if ((autodetectpointscounter > 5) && (autodetectpointscounter < 15)) {
-
-	    	choosepoints();
-
-	    	testcurrentpoints = tracking->tracker.getpoints(&PointTracker::currentpoints, true);
-	    	if ((testorigpoints.size() != 0) && (testcurrentpoints.size() != 0) && 
-	    		(euclideanDistance(testorigpoints[0], testcurrentpoints[0]) < THRESHOLD) && 
-	    		(euclideanDistance(testorigpoints[1], testcurrentpoints[1]) < THRESHOLD) && 
-	    		(euclideanDistance(testorigpoints[2], testcurrentpoints[2]) < THRESHOLD) && 
-	    		(euclideanDistance(testorigpoints[3], testcurrentpoints[3]) < THRESHOLD)){
-
-	    		autodetectpointscounter++;
-
-	    	}else{
-	    		autodetectpointscounter = 0;
-	    	}
-
-	    }
-	}
-
-	//choosepoints();
-
-	autodetectpointscounter++;
+    cout << "counter: " << counter << endl;
+	counter++;
 
 // -------------------------------------------------------------------------
 
 	// Wait a little so that the marker stays on the screen for a longer time
-	if((tracker_status == STATUS_CALIBRATING || tracker_status == STATUS_TESTING) && !videoinput->capture_from_video) {
+	if((tracker_status == STATUS_TESTING) && !videoinput->capture_from_video) {
 		usleep(sleep_parameter);
 	}
 	else {
@@ -615,7 +684,7 @@ cout << "autodetectpointscounter: " << autodetectpointscounter << endl;
 				image_norm *= 1.05;
 			}
 			
-			cout << "ROI NORM: " << image_norm << " (" << faces[0].width << "x" << faces[0].height << ")" << endl;
+			//cout << "ROI NORM: " << image_norm << " (" << faces[0].width << "x" << faces[0].height << ")" << endl;
 			cvResetImageROI(const_cast<IplImage*>(frame));
 			cvResetImageROI(overlayimage);
 		}
@@ -641,6 +710,11 @@ cout << "autodetectpointscounter: " << autodetectpointscounter << endl;
 
     try {
 	tracking->doprocessing(frame, canvas.get());
+
+	//if(tracking->tracker.pointcount() > 0) {
+	//	cin.get();
+	//}
+
 	if (tracking->gazetracker.isActive()) {
 		if(tracker_status != STATUS_TESTING) {
 			tracking->gazetracker.output.setActualTarget(Point(0, 0));
@@ -660,7 +734,7 @@ cout << "autodetectpointscounter: " << autodetectpointscounter << endl;
 		if(outputfile != NULL) {
 			TrackerOutput output = tracking->gazetracker.output;
 			if(tracker_status == STATUS_TESTING) {
-                cout << "TESTING, WRITING OUTPUT!!!!!!!!!!!!!!!!!" << endl;
+                //cout << "TESTING, WRITING OUTPUT!!!!!!!!!!!!!!!!!" << endl;
 				if(!tracking->eyex.isBlinking()) {
 					*outputfile << output.frameid + 1 << "\t" 
 							<< output.actualTarget.x << "\t" << output.actualTarget.y << "\t"
@@ -684,7 +758,7 @@ cout << "autodetectpointscounter: " << autodetectpointscounter << endl;
 		    outputfile->flush();
 		}
 	}
-	
+
 // 	if (!tracking->tracker.areallpointsactive())
 // 	    throw TrackingException();
 	framestoreload = 20;
@@ -721,9 +795,12 @@ cout << "autodetectpointscounter: " << autodetectpointscounter << endl;
 		cvRectangle(repositioning_image, cvPoint(0, videoinput->size.height-rectangle_thickness), cvPoint(videoinput->size.width, videoinput->size.height), color, CV_FILLED);	//bottm
 	}
 
+    cout << "HEY3" << endl;
+
     framefunctions.process();
 
-/*
+    cout << "HEY4" << endl;
+
 	// TODO COMMENT BEGIN
 	// REMOVED TO WRITE GAME WINDOW IMAGE TO VIDEO
 	if (recording) {
@@ -784,8 +861,10 @@ cout << "autodetectpointscounter: " << autodetectpointscounter << endl;
 			//cout << "Image written" << endl << endl;
 		}
 	}
-	*/
+
 	// TODO COMMENT END
+
+
 
 	// Show the current target & estimation points on the main window
 	if(tracker_status == STATUS_CALIBRATING || tracker_status == STATUS_TESTING || tracker_status == STATUS_CALIBRATED) {
@@ -816,7 +895,7 @@ cout << "autodetectpointscounter: " << autodetectpointscounter << endl;
 		}
 	}
 
-
+/*
 	// TODO UNCOMMENT BEGIN
 	// If video output is requested
     if (recording) {
@@ -827,6 +906,7 @@ cout << "autodetectpointscounter: " << autodetectpointscounter << endl;
     		video->write(game_win->picture.repositioningImage); //conversionimage);
 		}
 	}
+	*/
 	// TODO UNCOMMENT END
 
 //     statemachine.handleEvent(EVENT_TICK);
@@ -835,7 +915,92 @@ cout << "autodetectpointscounter: " << autodetectpointscounter << endl;
  		loadpoints();	
 }
 
+
+
+
+
+
+
 void MainGazeTracker::simulateClicks(void) {
+	static int count = 0;
+	static int tmp = 90;
+
+
+	if(fromvideofile) {
+		if(commands.size() > 0) {
+			while(commandindex >= 0 && commandindex <= (commands.size()-1) && commands[commandindex].frameno == totalframecount) {
+				cout << "Command: " << commands[commandindex].commandname << endl;
+				if(strcmp(commands[commandindex].commandname.c_str(), "SELECT") == 0) {
+					cout << "Choosing points automatically" << endl;
+					//choosepoints();
+				}
+				else if(strcmp(commands[commandindex].commandname.c_str(), "CLEAR") == 0) {
+					cout << "Clearing points automatically" << endl;
+					clearpoints();
+				}
+				else if(strcmp(commands[commandindex].commandname.c_str(), "CALIBRATE") == 0) {
+					cout << "Calibrating automatically" << endl;
+					startCalibration();
+				}
+				else if(strcmp(commands[commandindex].commandname.c_str(), "TEST") == 0) {
+					cout << "Testing automatically" << endl;
+					startTesting();
+				}
+				else if(strcmp(commands[commandindex].commandname.c_str(), "UNPAUSE") == 0 || strcmp(commands[commandindex].commandname.c_str(), "PAUSE") == 0) {
+					cout << "Pausing/unpausing automatically" << endl;
+					pauseOrRepositionHead();
+				}
+				
+				commandindex++;
+			}
+			
+				if(commandindex == commands.size() && (tracker_status == STATUS_IDLE || tracker_status == STATUS_CALIBRATED)) {
+					throw QuitNow();	
+				}
+		}
+	}
+	else {
+		
+		if ((pointsSelected) && (count < tmp)) {
+			cout << "Caso 1" <<  "	count: " << count << endl;
+			count++;
+		}
+
+		if ((pointsSelected) && (count == tmp )) {
+			cout << "Caso 2" <<  "	count: " << count << endl;
+			startCalibration();
+			count++;
+		}
+
+		if ((pointsSelected) && (is_tracker_calibrated) && (count < tmp * 2)) {
+			cout << "Caso 3" <<  "	count: " << count << endl;
+			count++;
+		}
+
+		if ((pointsSelected) && (is_tracker_calibrated) && (count == tmp*2)) {
+			cout << "Caso 4" <<  "	count: " << count << endl;
+			startTesting();
+			count++;
+		}
+
+		if (count > tmp*2) {
+			count++;
+		}
+
+		if (count == tmp*10) {
+			throw QuitNow();
+		}
+	}
+}
+
+
+
+
+
+
+
+
+/*void MainGazeTracker::simulateClicks(void) {
 	if(commands.size() > 0) {
 	while(commandindex >= 0 && commandindex <= (commands.size()-1) && commands[commandindex].frameno == totalframecount) {
 		cout << "Command: " << commands[commandindex].commandname << endl;
@@ -868,7 +1033,7 @@ void MainGazeTracker::simulateClicks(void) {
 		//	throw QuitNow();	
 		//}
 }
-}
+}*/
 
 MainGazeTracker::~MainGazeTracker(void) {
 	cleanUp();
@@ -905,11 +1070,11 @@ static vector<Point> scalebyscreen(const vector<Point> &points) {
 	Gdk::Display::get_default()->get_default_screen();
 	
 	if(num_of_monitors == 1) {
-    	return Calibrator::scaled(points, screen->get_width(), screen->get_height());
+    	return Calibrator::scaled(points, 1280, 777);
 	}
 	else {
 		screen->get_monitor_geometry(num_of_monitors - 1, rect);
-	    return Calibrator::scaled(points, rect.get_width(), rect.get_height());
+	    return Calibrator::scaled(points, 1280, 777);
 	}
 }
 
@@ -919,7 +1084,7 @@ void MainGazeTracker::startCalibration() {
 	if(game_win == NULL) {
 		game_win = new GameWindow (&(tracking->gazetracker.output));
 	}
-	game_win->show();
+	//game_win->show();
 	
 	if (recording) {
 		*commandoutputfile << totalframecount << " CALIBRATE" << endl;
@@ -1066,11 +1231,6 @@ bool detect_nose(IplImage* img, double resolution, CvRect nose_rect, Point point
 	cascade = cascade_nose;	// TODO CONTINUE
 	storage = cvCreateMemStorage(0);
 	
-	if(cascade == NULL)
-		cout << "CASCADE NOT LOADED" << endl;
-	else
-		cout << "Loaded" << endl;
-
 	// Detect objects
 	CvSeq* nose_seq = cvHaarDetectObjects(
 					nose_region_image,
@@ -1082,7 +1242,7 @@ bool detect_nose(IplImage* img, double resolution, CvRect nose_rect, Point point
 					nose_size
 					);
 		
-				cout << nose_seq->total << " NOSES DETECTED" << endl;
+				//cout << nose_seq->total << " NOSES DETECTED" << endl;
 	// Return the first nose if any eye is detected
 	if((nose_seq ? nose_seq->total : 0) > 0) {
 		// If there are multiple matches, choose the one with larger area
@@ -1152,11 +1312,6 @@ bool detect_mouth(IplImage* img, double resolution, CvRect mouth_rect, Point poi
 	cascade = cascade_mouth;
 	storage = cvCreateMemStorage(0);
 	
-	if(cascade == NULL)
-		cout << "CASCADE NOT LOADED" << endl;
-	else
-		cout << "Loaded" << endl;
-
 	// Detect objects
 	CvSeq* mouth_seq = cvHaarDetectObjects(
 					mouth_region_image,
@@ -1168,7 +1323,7 @@ bool detect_mouth(IplImage* img, double resolution, CvRect mouth_rect, Point poi
 					mouth_size
 					);
 	
-	cout << mouth_seq->total << " MOUTHS DETECTED" << endl;
+	//cout << mouth_seq->total << " MOUTHS DETECTED" << endl;
 		
 	// Return the first mouth if any eye is detected
 	if((mouth_seq ? mouth_seq->total : 0) > 0) {
@@ -1208,7 +1363,11 @@ float calculateDistance(CvPoint2D32f pt1, CvPoint2D32f pt2 ) {
 }
 
 void detect_eye_template(IplImage* img, double resolution, Point points[], CvHaarClassifierCascade* cascade_eye, EyeTemplate extractFeatures) {
+	IplImage* saved_image = cvCreateImage(cvSize(img->width, img->height),
+	                               img->depth,
+	                               img->nChannels);
 
+	cvCopy(img, saved_image, 0 );	
 	CvHaarClassifierCascade* cascade = 0;
 	CvMemStorage* storage = 0;
 	IplImage* eye_region_image;
@@ -1251,7 +1410,7 @@ void detect_eye_template(IplImage* img, double resolution, Point points[], CvHaa
 					both_eyes_size
 					);
 		
-	cout << eye_regions->total << " eye regions detected" << endl;
+	//cout << eye_regions->total << " eye regions detected" << endl;
 				
 	// Return the first eye if any eye is detected
 	if((eye_regions ? eye_regions->total : 0) > 0) {
@@ -1261,19 +1420,37 @@ void detect_eye_template(IplImage* img, double resolution, Point points[], CvHaa
 		return;
 	}
 	
-	cout << "Resolution: " << resolution << ", both eye reg.:" << both_eyes->width << ", " << both_eyes->height << endl;
+	//cout << "Resolution: " << resolution << ", both eye reg.:" << both_eyes->width << ", " << both_eyes->height << endl;
 	
-	/*
+	
 	cvRectangle(
-	  img,
+	  saved_image,
 	  cvPoint(both_eyes->x, both_eyes->y),
 	  cvPoint(both_eyes->x + both_eyes->width, both_eyes->y + both_eyes->height),
 	  CV_RGB(0, 255, 0),
 	  2, 8, 0
 	);
-	*/
+
+
+
+
+
+
+	static int frame_number_detect_eye = 0;
+
+	string file_detect_eye;
+    char buffer_detect_eye [100];
+
+    cout << "SAVING IMAGES Template Right" << endl;
+    file_detect_eye=sprintf (buffer_detect_eye, "imgs/PositionRectangle/%d.jpg", frame_number_detect_eye);
+
+    cvSaveImage(buffer_detect_eye, saved_image);
 	
-	cout << "Setting ROI" << endl;
+
+
+
+	
+	//cout << "Setting ROI" << endl;
 	int corner_count = 100;
 	eye_region_image = cvCreateImage(cvSize(both_eyes->width, both_eyes->height),
 	                               img->depth,
@@ -1293,7 +1470,7 @@ void detect_eye_template(IplImage* img, double resolution, Point points[], CvHaa
 
     cvCopy(eye_region_image, eye_template);
 
-	cvResetImageROI(img);
+	cvResetImageROI(eye_region_image);
 
 	IplImage* eye_template_resized = cvCreateImage(EyeExtractor::eyesize,IPL_DEPTH_8U,3);
 
@@ -1303,16 +1480,30 @@ void detect_eye_template(IplImage* img, double resolution, Point points[], CvHaa
 
 	cvCvtColor(eye_template_resized, eye_template_grey, CV_RGB2GRAY);
 
-	cout << "Detecting iris" << endl;
+	//cout << "Detecting iris" << endl;
 
     Point* coords = extractFeatures.ProcessToExtractFeatures(eye_template_grey, eye_template_resized);
 
-	cout << "Finished" << endl << endl;
+	cout << "Right eye coords: " << coords->x << ", " << coords->y << endl;
+
+	cvRectangle(
+	  eye_region_image,
+	  cvPoint( floor(eye_region_image->width/2 + coords->x * ( eye_template->width/ (double) eye_template_resized->width) - 1), floor(coords->y * ( eye_template->height/ (double) eye_template_resized->height) - 1)),
+	  cvPoint( floor(eye_region_image->width/2 + coords->x * ( eye_template->width/ (double) eye_template_resized->width) + 1), floor(coords->y * ( eye_template->height/ (double) eye_template_resized->height) + 1)),
+	  CV_RGB(255, 0, 0),
+	  2, 8, 0
+	);
+
+
+
+
+
+	//cout << "Finished" << endl << endl;
 
 	double scale_x = eye_template->width / (double) eye_template_resized->width;
 	double scale_y = eye_template->height / (double) eye_template_resized->height;
 
-	//cvRectangle(img, cvPoint(both_eyes->x + eye_region_image->width/2 + coords->x * scale_x - 5, both_eyes->y + coords->y * scale_y - 5), cvPoint(both_eyes->x + eye_region_image->width/2 + coords->x * scale_x + 10, both_eyes->y + coords->y * scale_y + 10), cvScalar(0,255,0), -1, 8, 0);
+	cvRectangle(saved_image, cvPoint(both_eyes->x + eye_region_image->width/2 + coords->x * scale_x - 5, both_eyes->y + coords->y * scale_y - 5), cvPoint(both_eyes->x + eye_region_image->width/2 + coords->x * scale_x + 10, both_eyes->y + coords->y * scale_y + 10), cvScalar(0,255,0), -1, 8, 0);
 
 
     // DETECT LEFT EYE IRIS
@@ -1323,7 +1514,7 @@ void detect_eye_template(IplImage* img, double resolution, Point points[], CvHaa
 
     cvCopy(eye_region_image, eye_template_left);
 
-	cvResetImageROI(img);
+	cvResetImageROI(eye_region_image);
 
 	IplImage* eye_template_left_resized = cvCreateImage(EyeExtractor::eyesize,IPL_DEPTH_8U,3);
 
@@ -1333,16 +1524,44 @@ void detect_eye_template(IplImage* img, double resolution, Point points[], CvHaa
 
 	cvCvtColor(eye_template_left_resized, eye_template_left_grey, CV_RGB2GRAY);
 
-	cout << "Detecting iris" << endl;
+	//cout << "Detecting iris" << endl;
 
     Point* coords_left = extractFeatures.ProcessToExtractFeatures(eye_template_left_grey, eye_template_left_resized);
 
-	cout << "Finished" << endl << endl;
+    cout << "Left eye coords: " << coords_left->x << ", " << coords_left->y << endl;
+
+    cout << "Coords_left->x: " << coords_left->x << ", " << floor(coords_left->x * ( eye_template->width/ (double) eye_template_resized->width)) << endl;
+
+
+
+	cvRectangle(
+	  eye_region_image,
+	  cvPoint( floor(coords_left->x * ( eye_template->width/ (double) eye_template_resized->width) - 1), floor(coords_left->y * ( eye_template->height/ (double) eye_template_resized->height) - 1)),
+	  cvPoint( floor(coords_left->x * ( eye_template->width/ (double) eye_template_resized->width) + 1), floor(coords_left->y * ( eye_template->height/ (double) eye_template_resized->height) + 1)),
+	  CV_RGB(255, 0, 0),
+	  2, 8, 0
+	);
+
+
+
+
+    cout << "SAVING IMAGES Template Left" << endl;
+    file_detect_eye=sprintf (buffer_detect_eye, "imgs/PositionEyeCenter/%d.jpg", frame_number_detect_eye);
+
+    cvSaveImage(buffer_detect_eye, eye_region_image);
+
+    frame_number_detect_eye++;
+
+    //cin.get();
+
+
+
+	//cout << "Finished" << endl << endl;
 
 	double scale_x_left = eye_template_left->width / (double) eye_template_left_resized->width;
 	double scale_y_left = eye_template_left->height / (double) eye_template_left_resized->height;
 
-	//cvRectangle(img, cvPoint(both_eyes->x + coords_left->x * scale_x_left - 5, both_eyes->y + coords_left->y * scale_y_left - 5), cvPoint(both_eyes->x + coords_left->x * scale_x_left + 10, both_eyes->y + coords_left->y * scale_y_left + 10), cvScalar(0,255,0), -1, 8, 0);
+	cvRectangle(saved_image, cvPoint(both_eyes->x + coords_left->x * scale_x_left - 5, both_eyes->y + coords_left->y * scale_y_left - 5), cvPoint(both_eyes->x + coords_left->x * scale_x_left + 10, both_eyes->y + coords_left->y * scale_y_left + 10), cvScalar(0,255,0), -1, 8, 0);
 
 
 
@@ -1358,16 +1577,24 @@ void detect_eye_template(IplImage* img, double resolution, Point points[], CvHaa
 	double y_diff = right_eye_center_y - left_eye_center_y;
 	
 
-	cout << "x_diff: " << x_diff << endl;
-	cout << "y_diff: " << y_diff << endl;
+	//cout << "x_diff: " << x_diff << endl;
+	//cout << "y_diff: " << y_diff << endl;
 
 
 	//points[0] = Point(both_eyes->x + left_eye_corners_x_sum, both_eyes->y + left_eye_corners_y_sum);
 	//points[1] = Point(both_eyes->x + right_eye_corners_x_sum, both_eyes->y + right_eye_corners_y_sum);
+	
+	//points[0] = Point(left_eye_center_x - 0.29*x_diff, left_eye_center_y - 0.29*y_diff);// + x_diff/40);
+	//points[1] = Point(right_eye_center_x + 0.29*x_diff, right_eye_center_y + 0.29*y_diff);// + x_diff/40);
+
+	// ARCADI CHANGED MAGIC NUMBER FOR "X" AXIS
 	points[0] = Point(left_eye_center_x - 0.29*x_diff, left_eye_center_y - 0.29*y_diff);// + x_diff/40);
 	points[1] = Point(right_eye_center_x + 0.29*x_diff, right_eye_center_y + 0.29*y_diff);// + x_diff/40);
 
-	
+	cvCircle(saved_image, cvPoint(points[0].x, points[0].y), 3, CV_RGB(0,255,0), -1, 8,0);
+	cvCircle(saved_image, cvPoint(points[1].x, points[1].y), 3, CV_RGB(0,255,0), -1, 8,0);
+	cvSaveImage("ALL_EYE_INFO.png", saved_image);
+
 	/// Drawing a circle around corners
   	//for( int j = 0; j < corner_count; j++ )
 	//{ 
@@ -1435,7 +1662,7 @@ void detect_eye_corners(IplImage* img, double resolution, Point points[], CvHaar
 					both_eyes_size
 					);
 		
-	cout << eye_regions->total << " eye regions detected" << endl;
+	//cout << eye_regions->total << " eye regions detected" << endl;
 				
 	// Return the first eye if any eye is detected
 	if((eye_regions ? eye_regions->total : 0) > 0) {
@@ -1445,7 +1672,7 @@ void detect_eye_corners(IplImage* img, double resolution, Point points[], CvHaar
 		return;
 	}
 	
-	cout << "Resolution: " << resolution << ", both eye reg.:" << both_eyes->width << ", " << both_eyes->height << endl;
+	//cout << "Resolution: " << resolution << ", both eye reg.:" << both_eyes->width << ", " << both_eyes->height << endl;
 	
 	/*
 	cvRectangle(
@@ -1489,13 +1716,13 @@ void detect_eye_corners(IplImage* img, double resolution, Point points[], CvHaar
 			left_eye_corners_x_sum += corners[j].x;
 			left_eye_corners_y_sum += corners[j].y;
 			left_eye_corners_count++;
-			cvCircle(eye_region_image, cvPoint(corners[j].x, corners[j].y), 3, CV_RGB(255,0,0), -1, 8,0);
+			//cvCircle(eye_region_image, cvPoint(corners[j].x, corners[j].y), 3, CV_RGB(255,0,0), -1, 8,0);
 		}
 		else if(corners[j].x > both_eyes->width*0.6){
 			right_eye_corners_x_sum += corners[j].x;
 			right_eye_corners_y_sum += corners[j].y;
 			right_eye_corners_count++;
-			cvCircle(eye_region_image, cvPoint(corners[j].x, corners[j].y), 3, CV_RGB(255,0,0), -1, 8,0);
+			//cvCircle(eye_region_image, cvPoint(corners[j].x, corners[j].y), 3, CV_RGB(255,0,0), -1, 8,0);
 		}
 	}
 	
@@ -1544,11 +1771,11 @@ void detect_eyebrow_corners(IplImage* img, double resolution, CvRect eyebrow_rec
 	                               img->nChannels);
 	eyebrow_region_image_gray_2 = cvCreateImage(cvSize(eyebrow_rect.width, eyebrow_rect.height), 8, 1);
 	
-	cout << "EYEBROW x, y = " << eyebrow_rect.x << " - " << eyebrow_rect.y << " width, height =" << eyebrow_rect.width << " - " << eyebrow_rect.height << endl;
+	//cout << "EYEBROW x, y = " << eyebrow_rect.x << " - " << eyebrow_rect.y << " width, height =" << eyebrow_rect.width << " - " << eyebrow_rect.height << endl;
 	cvSetImageROI(img, eyebrow_rect);
 	cvCopy(img, eyebrow_region_image);
 	
-	cout << "Copied first" << endl;
+	//cout << "Copied first" << endl;
 	
 	CvRect eyebrow_rect_2 = cvRect(eyebrow_rect.x + eyebrow_rect.width, eyebrow_rect.y, eyebrow_rect.width, eyebrow_rect.height);
 	cvSetImageROI(img, eyebrow_rect_2);
@@ -1569,7 +1796,7 @@ void detect_eyebrow_corners(IplImage* img, double resolution, CvRect eyebrow_rec
 	points[0] = Point(eyebrow_rect.x + corners[0].x, eyebrow_rect.y + corners[0].y);
 	points[1] = Point(eyebrow_rect_2.x + corners_2[0].x, eyebrow_rect_2.y + corners_2[0].y);
 	
-	cout << "Finished eyebrows" << endl;
+	//cout << "Finished eyebrows" << endl;
 }
 
 

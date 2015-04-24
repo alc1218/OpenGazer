@@ -107,7 +107,9 @@ int main(int argc, char **argv)
 			//cvShowImage("mainWin", input_gray);
 			//cvWaitKey(0);
 
-			segmentation.processToExtractFeatures(input_gray, input, histograma_hor, histograma_ver, vector_hor, vector_ver);
+			std::vector<std::vector<int> >* h = new std::vector<std::vector<int> >;
+
+			segmentation.processToExtractFeatures(input_gray, input, histograma_hor, histograma_ver, vector_hor, vector_ver, h);
 
 
 			int tp = 0, fp=0, fn=0,tn=0;
